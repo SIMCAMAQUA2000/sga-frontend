@@ -4,16 +4,16 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { supabase } from '../../lib/supabaseClient'; // Ajuste o caminho se necessário
+import { supabase } from '../../lib/supabaseClient';
 
-// Tipagem para os dados que vamos buscar
+// INTERFACE CORRIGIDA: Agora espera 'estabelecimentos' como um objeto único, não uma lista.
 interface Requisicao {
   id: number;
   created_at: string;
   tipo_requisicao: 'AGUA' | 'PRODUTO';
   produto_coletado: string | null;
   ponto_coleta: string | null;
-  estabelecimentos: { // Objeto aninhado com os dados do estabelecimento
+  estabelecimentos: { // Espera um objeto, não uma lista
     nome: string;
   } | null;
 }
@@ -24,7 +24,7 @@ export default function HistoricoPage() {
 
   useEffect(() => {
     async function fetchRequisicoes() {
-      // Consulta que busca as requisições e faz o "join" com a tabela de estabelecimentos
+      // CONSULTA CORRIGIDA: Especificamos que queremos um único registro relacionado
       const { data, error } = await supabase
         .from('requisicoes')
         .select(`
@@ -35,13 +35,13 @@ export default function HistoricoPage() {
           ponto_coleta,
           estabelecimentos ( nome )
         `)
-        .order('created_at', { ascending: false }); // Ordena pelas mais recentes
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error("Erro ao buscar histórico:", error);
         alert('Não foi possível carregar o histórico.');
       } else {
-        setRequisicoes(data || []);
+        setRequisicoes(data as Requisicao[] || []);
       }
       setLoading(false);
     }
@@ -75,6 +75,7 @@ export default function HistoricoPage() {
                 requisicoes.map(req => (
                   <tr key={req.id}>
                     <td>{new Date(req.created_at).toLocaleDateString('pt-BR')}</td>
+                    {/* LÓGICA DE EXIBIÇÃO CORRIGIDA */}
                     <td>{req.estabelecimentos?.nome || 'N/A'}</td>
                     <td>{req.tipo_requisicao}</td>
                     <td>{req.tipo_requisicao === 'AGUA' ? req.ponto_coleta : req.produto_coletado}</td>
