@@ -31,8 +31,6 @@ export default function HomePage() {
   const [pontoColeta, setPontoColeta] = useState<string>('');
   const [analisesSelecionadas, setAnalisesSelecionadas] = useState<Set<number>>(new Set());
   const [mesReferencia, setMesReferencia] = useState<string>('');
-  
-  // Estados para Lote, Produção e Validade
   const [lote, setLote] = useState<string>('');
   const [dataProducao, setDataProducao] = useState<string>('');
   const [dataValidade, setDataValidade] = useState<string>('');
@@ -72,7 +70,10 @@ export default function HomePage() {
       const { data: paramLinks } = await supabase.from('produto_parametros').select('parametro_id').eq('produto_id', selectedProdId);
       if (paramLinks && paramLinks.length > 0) {
         const paramIds = paramLinks.map(link => link.parametro_id);
-        const { data: paramsData } = await supabase.from('parametros_analise').select('id, nome_parametro, tipo').in('id', paramIds);
+        
+        // LINHA CORRIGIDA: Adicionado 'aplicacao' à consulta
+        const { data: paramsData } = await supabase.from('parametros_analise').select('id, nome_parametro, tipo, aplicacao').in('id', paramIds);
+        
         if (paramsData) {
           setParametrosDoProduto(paramsData);
           setAnalisesSelecionadas(new Set(paramsData.map(p => p.id)));
@@ -105,8 +106,7 @@ export default function HomePage() {
     setLacre(''); setObservacoes(''); setPontoColeta('');
     setSelectedProdId('');
     setParametrosDoProduto([]); setAnalisesSelecionadas(new Set());
-    setMesReferencia('');
-    setLote(''); setDataProducao(''); setDataValidade('');
+    setMesReferencia(''); setLote(''); setDataProducao(''); setDataValidade('');
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -182,25 +182,9 @@ export default function HomePage() {
           <input type="text" id="endereco" value={endereco} readOnly style={{ backgroundColor: '#e9ecef' }} />
         </div>
         
-        {tipoAnalise === 'AGUA' && (
-          <div className="analysis-box">
-            <h3>Análise de Água</h3>
-            <label htmlFor="ponto_coleta" className="form-label">Ponto de Coleta:</label>
-            <input type="text" id="ponto_coleta" value={pontoColeta} onChange={e => setPontoColeta(e.target.value)} />
-            <h4 style={{ marginTop: '1.5rem' }}>Análises Solicitadas</h4>
-            {allParams.filter(p => p.aplicacao === 'AGUA').map(param => (
-              <div key={param.id}>
-                <input type="checkbox" id={`param-${param.id}`} checked={analisesSelecionadas.has(param.id)} onChange={() => handleAnaliseChange(param.id)} />
-                <label htmlFor={`param-${param.id}`} className="checkbox-label">{param.nome_parametro}</label>
-              </div>
-            ))}
-          </div>
-        )}
-
         {tipoAnalise === 'PRODUTO' && (
           <div className="analysis-box">
             <h3>Análise de Produto</h3>
-            
             <div style={{ marginBottom: '1.5rem' }}>
               <label htmlFor="produto_coletado" className="form-label">Produto Coletado:</label>
               <select id="produto_coletado" value={selectedProdId} onChange={e => setSelectedProdId(e.target.value)} required disabled={!selectedEstId}>
@@ -208,12 +192,10 @@ export default function HomePage() {
                 {produtosDoEstabelecimento.map(prod => <option key={prod.id} value={prod.id}>{prod.nome_produto}</option>)}
               </select>
             </div>
-
             <div style={{ marginBottom: '1.5rem' }}>
               <label htmlFor="lote" className="form-label">Lote:</label>
               <input type="text" id="lote" value={lote} onChange={e => setLote(e.target.value)} />
             </div>
-
             <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
               <div style={{ flex: 1 }}>
                 <label htmlFor="dataProducao" className="form-label">Data de Produção:</label>
@@ -224,7 +206,6 @@ export default function HomePage() {
                 <input type="date" id="dataValidade" value={dataValidade} onChange={e => setDataValidade(e.target.value)} />
               </div>
             </div>
-            
             {parametrosDoProduto.length > 0 && (
               <>
                 <h4 style={{ marginTop: '1.5rem' }}>Análises Solicitadas (Automático)</h4>
@@ -238,6 +219,21 @@ export default function HomePage() {
                 ))}
               </>
             )}
+          </div>
+        )}
+
+        {tipoAnalise === 'AGUA' && (
+          <div className="analysis-box">
+            <h3>Análise de Água</h3>
+            <label htmlFor="ponto_coleta" className="form-label">Ponto de Coleta:</label>
+            <input type="text" id="ponto_coleta" value={pontoColeta} onChange={e => setPontoColeta(e.target.value)} />
+            <h4 style={{ marginTop: '1.5rem' }}>Análises Solicitadas</h4>
+            {allParams.filter(p => p.aplicacao === 'AGUA').map(param => (
+              <div key={param.id}>
+                <input type="checkbox" id={`param-${param.id}`} checked={analisesSelecionadas.has(param.id)} onChange={() => handleAnaliseChange(param.id)} />
+                <label htmlFor={`param-${param.id}`} className="checkbox-label">{param.nome_parametro}</label>
+              </div>
+            ))}
           </div>
         )}
         
