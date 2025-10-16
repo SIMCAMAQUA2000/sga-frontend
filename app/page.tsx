@@ -71,7 +71,7 @@ export default function HomePage() {
       if (paramLinks && paramLinks.length > 0) {
         const paramIds = paramLinks.map(link => link.parametro_id);
         
-        // LINHA CORRIGIDA: Adicionado 'aplicacao' à consulta
+        // LINHA CORRIGIDA: Adicionamos 'aplicacao' para satisfazer a tipagem de 'Parametro'.
         const { data: paramsData } = await supabase.from('parametros_analise').select('id, nome_parametro, tipo, aplicacao').in('id', paramIds);
         
         if (paramsData) {
