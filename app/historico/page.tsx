@@ -6,14 +6,14 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '../../lib/supabaseClient';
 
-// INTERFACE CORRIGIDA: Agora espera 'estabelecimentos' como um array de objetos.
+// A interface permanece a mesma, esperando um array.
 interface Requisicao {
   id: number;
   created_at: string;
   tipo_requisicao: 'AGUA' | 'PRODUTO';
   produto_coletado: string | null;
   ponto_coleta: string | null;
-  estabelecimentos: { // Espera um array de objetos
+  estabelecimentos: {
     nome: string;
   }[] | null;
 }
@@ -40,7 +40,9 @@ export default function HistoricoPage() {
         console.error("Erro ao buscar histórico:", error);
         alert('Não foi possível carregar o histórico.');
       } else {
-        setRequisicoes(data as any[] || []);
+        // LINHA CORRIGIDA: Removemos o "as any[]".
+        // O TypeScript agora irá verificar se 'data' é compatível com 'Requisicao[]'.
+        setRequisicoes(data || []);
       }
       setLoading(false);
     }
@@ -74,7 +76,6 @@ export default function HistoricoPage() {
                 requisicoes.map(req => (
                   <tr key={req.id}>
                     <td>{new Date(req.created_at).toLocaleDateString('pt-BR')}</td>
-                    {/* LÓGICA DE EXIBIÇÃO CORRIGIDA: Acessa o primeiro item do array */}
                     <td>{req.estabelecimentos && req.estabelecimentos.length > 0 ? req.estabelecimentos[0].nome : 'N/A'}</td>
                     <td>{req.tipo_requisicao}</td>
                     <td>{req.tipo_requisicao === 'AGUA' ? req.ponto_coleta : req.produto_coletado}</td>
