@@ -88,3 +88,48 @@ input[type="text"], input[type="date"], input[type="time"], input[type="email"],
   .form-container { margin: 1rem; padding: 1.5rem; }
   h1 { font-size: 1.8rem; }
 }
+/* Estilo para a linha clicável na tabela de histórico */
+.clickable-row {
+  cursor: pointer;
+}
+
+/* Estilos para a página de detalhes */
+.details-section {
+  margin-top: 2rem;
+  border-top: 1px solid #eee;
+  padding-top: 1.5rem;
+}
+
+.details-section h3 {
+  margin-top: 0;
+  color: #007bff; /* Dá um destaque azul aos títulos de seção */
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 0.5rem 1.5rem;
+}
+
+.details-section ul {
+  list-style-position: inside;
+  padding-left: 0;
+}
+/* ... cole no final do arquivo app/globals.css ... */
+
+/* Estilo para o botão de gerar PDF */
+.pdf-button {
+  background-color: #28a745; /* Verde */
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.pdf-button:hover {
+  background-color: #218838;
+}
