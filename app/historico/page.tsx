@@ -4,13 +4,15 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 
-// Tipagem para os dados que vamos buscar
+// ==========================================================================
+//  CORREÇÃO DE TIPO DEFINITIVA AQUI
+// ==========================================================================
 interface Requisicao {
   id: number;
   created_at: string;
   tipo_requisicao: string;
   data_coleta: string | null;
-  estabelecimentos: {
+  estabelecimentos: { // Deve ser um objeto único, não um array
     nome: string;
   } | null;
 }
@@ -40,7 +42,7 @@ export default function HistoricoPage() {
         if (data) {
           setRequisicoes(data as Requisicao[]);
         }
-      } catch (err) { // CORREÇÃO AQUI: removido o ': any'
+      } catch (err) {
         console.error("Erro ao buscar histórico:", err);
         setError("Não foi possível carregar o histórico.");
       } finally {
@@ -97,6 +99,7 @@ export default function HistoricoPage() {
               {requisicoes.map((req) => (
                 <tr key={req.id}>
                   <td>{req.id}</td>
+                  {/* CORREÇÃO AQUI: Acessamos a propriedade 'nome' diretamente */}
                   <td>{req.estabelecimentos?.nome || 'N/A'}</td>
                   <td>{req.tipo_requisicao}</td>
                   <td>{req.data_coleta ? new Date(req.data_coleta + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</td>

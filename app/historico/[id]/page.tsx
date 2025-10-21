@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
 import jsPDF from 'jspdf';
-import autoTable, { RowInput } from 'jspdf-autotable';
+import autoTable, { RowInput } from 'jspdf-autotable'; // Importa o tipo RowInput
 
 // --- Tipagens (sem alterações) ---
 interface RequisicaoDetalhada {
@@ -125,9 +125,6 @@ export default function DetalhesRequisicaoPage() {
     doc.setFont('helvetica', 'bold');
     doc.text(title, pageWidth / 2, 50, { align: 'center' });
 
-    // ==========================================================================
-    //  CORREÇÃO FINAL DE ESTRUTURA E TIPO
-    // ==========================================================================
     const sectionHeadStyle = { fillColor: '#E9ECEF', textColor: '#343A40', fontStyle: 'bold' as const, halign: 'center' as const };
     const spacerStyle = { minCellHeight: 5, styles: { lineWidth: 0 } };
 
