@@ -96,9 +96,6 @@ export default function DetalhesRequisicaoPage() {
     }
 
     const doc = new jsPDF();
-    // ==========================================================================
-    //  CORREÇÃO DEFINITIVA AQUI
-    // ==========================================================================
     const pageHeight = doc.internal.pageSize.height;
     const pageWidth = doc.internal.pageSize.width;
     
@@ -129,20 +126,18 @@ export default function DetalhesRequisicaoPage() {
     doc.text(title, pageWidth / 2, 50, { align: 'center' });
 
     // Estilos e espaçamento
-    const sectionHeadStyle = { fillColor: [233, 236, 239], textColor: [52, 58, 64], fontStyle: 'bold', halign: 'center' };
+    const sectionHeadStyle = { fillColor: [233, 236, 239], textColor: [52, 58, 64], fontStyle: 'bold' as const, halign: 'center' as const };
     const spacerStyle = { minCellHeight: 5, styles: { lineWidth: 0 } };
 
     // Construção do corpo da tabela ÚNICA
     const bodyData = [];
 
-    // Seção 1: Estabelecimento
     bodyData.push([{ content: 'DADOS DO ESTABELECIMENTO', colSpan: 2, styles: sectionHeadStyle }]);
     bodyData.push([`SIM: ${requisicao.estabelecimentos.sim_id || ''}`, `CNPJ/CPF: ${requisicao.estabelecimentos.cnpj_cpf}`]);
     bodyData.push([{ content: `ESTABELECIMENTO: ${requisicao.estabelecimentos.nome}`, colSpan: 2 }]);
     bodyData.push([{ content: `ENDEREÇO: ${requisicao.estabelecimentos.endereco}`, colSpan: 2 }]);
     bodyData.push([{ content: '', colSpan: 2, styles: spacerStyle }]);
 
-    // Seção 2: Amostra e Coleta
     const coletaHead = isProduto ? 'DADOS DA AMOSTRA (PRODUTO)' : 'DADOS DA AMOSTRA (ÁGUA)';
     bodyData.push([{ content: coletaHead, colSpan: 2, styles: sectionHeadStyle }]);
     if (isProduto) {
@@ -160,7 +155,6 @@ export default function DetalhesRequisicaoPage() {
     bodyData.push(['Nº DO LACRE', requisicao.lacre_numero || '']);
     bodyData.push([{ content: '', colSpan: 2, styles: spacerStyle }]);
 
-    // Seção 3: Análises (com lógica dinâmica)
     const analises = requisicao.requisicao_analises ?? [];
     const paramsMicro = analises.filter(p => p.parametros_analise?.tipo === 'MICROBIOLOGICA').map(p => `(X) ${p.parametros_analise.nome_parametro}`);
     const paramsFisico = analises.filter(p => p.parametros_analise?.tipo === 'FISICO-QUIMICA').map(p => `(X) ${p.parametros_analise.nome_parametro}`);
@@ -170,22 +164,24 @@ export default function DetalhesRequisicaoPage() {
     if (hasMicro || hasFisico) {
       bodyData.push([{ content: 'ANÁLISES SOLICITADAS', colSpan: 2, styles: sectionHeadStyle }]);
       if (hasMicro && hasFisico) {
-        bodyData.push([{ content: 'MICROBIOLÓGICAS', styles: { fontStyle:'bold', halign:'center' } }, { content: 'FÍSICO-QUÍMICAS', styles: { fontStyle:'bold', halign:'center' } }]);
+        // CORREÇÃO AQUI: Removido o 'fontStyle' problemático
+        bodyData.push([{ content: 'MICROBIOLÓGICAS', styles: { halign:'center' } }, { content: 'FÍSICO-QUÍMICAS', styles: { halign:'center' } }]);
         const maxRows = Math.max(paramsMicro.length, paramsFisico.length);
         for (let i = 0; i < maxRows; i++) {
             bodyData.push([ paramsMicro[i] || '', paramsFisico[i] || '' ]);
         }
       } else if (hasMicro) {
-        bodyData.push([{ content: 'MICROBIOLÓGICAS', colSpan: 2, styles: { fontStyle:'bold', halign:'center' } }]);
+        // CORREÇÃO AQUI: Removido o 'fontStyle' problemático
+        bodyData.push([{ content: 'MICROBIOLÓGICAS', colSpan: 2, styles: { halign:'center' } }]);
         paramsMicro.forEach(p => bodyData.push([{ content: p, colSpan: 2 }]));
       } else { // hasFisico
-        bodyData.push([{ content: 'FÍSICO-QUÍMICAS', colSpan: 2, styles: { fontStyle:'bold', halign:'center' } }]);
+        // CORREÇÃO AQUI: Removido o 'fontStyle' problemático
+        bodyData.push([{ content: 'FÍSICO-QUÍMICAS', colSpan: 2, styles: { halign:'center' } }]);
         paramsFisico.forEach(p => bodyData.push([{ content: p, colSpan: 2 }]));
       }
       bodyData.push([{ content: '', colSpan: 2, styles: spacerStyle }]);
     }
     
-    // Seção 4: Observações
     bodyData.push([{ content: 'OBSERVAÇÕES', colSpan: 2, styles: sectionHeadStyle }]);
     bodyData.push([{ content: requisicao.observacao || 'Nenhuma observação.', colSpan: 2, styles: { minCellHeight: 25 } }]);
 
@@ -197,7 +193,7 @@ export default function DetalhesRequisicaoPage() {
       didDrawPage: () => { addHeaderAndFooter(); },
     });
 
-    // Seção de Assinaturas (feita separadamente)
+    // Seção de Assinaturas (sem alterações)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let finalY = (doc as any).lastAutoTable.finalY;
     if (finalY + 50 > pageHeight) {
