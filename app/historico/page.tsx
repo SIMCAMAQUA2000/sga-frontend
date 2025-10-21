@@ -35,12 +35,12 @@ export default function HistoricoPage() {
           .order('created_at', { ascending: false });
 
         if (error) {
-          throw new Error(error.message);
+          throw error;
         }
         if (data) {
           setRequisicoes(data as Requisicao[]);
         }
-      } catch (err: any) {
+      } catch (err) { // CORREÇÃO AQUI: removido o ': any'
         console.error("Erro ao buscar histórico:", err);
         setError("Não foi possível carregar o histórico.");
       } finally {

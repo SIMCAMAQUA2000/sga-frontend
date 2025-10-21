@@ -132,14 +132,12 @@ export default function DetalhesRequisicaoPage() {
     // Construção do corpo da tabela ÚNICA
     const bodyData = [];
 
-    // Seção 1: Estabelecimento
     bodyData.push([{ content: 'DADOS DO ESTABELECIMENTO', colSpan: 2, styles: sectionHeadStyle }]);
     bodyData.push([`SIM: ${requisicao.estabelecimentos.sim_id || ''}`, `CNPJ/CPF: ${requisicao.estabelecimentos.cnpj_cpf}`]);
     bodyData.push([{ content: `ESTABELECIMENTO: ${requisicao.estabelecimentos.nome}`, colSpan: 2 }]);
     bodyData.push([{ content: `ENDEREÇO: ${requisicao.estabelecimentos.endereco}`, colSpan: 2 }]);
     bodyData.push([{ content: '', colSpan: 2, styles: spacerStyle }]);
 
-    // Seção 2: Amostra e Coleta
     const coletaHead = isProduto ? 'DADOS DA AMOSTRA (PRODUTO)' : 'DADOS DA AMOSTRA (ÁGUA)';
     bodyData.push([{ content: coletaHead, colSpan: 2, styles: sectionHeadStyle }]);
     if (isProduto) {
@@ -157,7 +155,6 @@ export default function DetalhesRequisicaoPage() {
     bodyData.push(['Nº DO LACRE', requisicao.lacre_numero || '']);
     bodyData.push([{ content: '', colSpan: 2, styles: spacerStyle }]);
 
-    // Seção 3: Análises (com lógica dinâmica)
     const analises = requisicao.requisicao_analises ?? [];
     const paramsMicro = analises.filter(p => p.parametros_analise?.tipo === 'MICROBIOLOGICA').map(p => `(X) ${p.parametros_analise.nome_parametro}`);
     const paramsFisico = analises.filter(p => p.parametros_analise?.tipo === 'FISICO-QUIMICA').map(p => `(X) ${p.parametros_analise.nome_parametro}`);
@@ -182,7 +179,6 @@ export default function DetalhesRequisicaoPage() {
       bodyData.push([{ content: '', colSpan: 2, styles: spacerStyle }]);
     }
     
-    // Seção 4: Observações
     bodyData.push([{ content: 'OBSERVAÇÕES', colSpan: 2, styles: sectionHeadStyle }]);
     bodyData.push([{ content: requisicao.observacao || 'Nenhuma observação.', colSpan: 2, styles: { minCellHeight: 25 } }]);
 
@@ -194,13 +190,14 @@ export default function DetalhesRequisicaoPage() {
       didDrawPage: () => { addHeaderAndFooter(); },
     });
 
-    // Seção de Assinaturas (feita separadamente)
+    // Seção de Assinaturas
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let finalY = (doc as any).lastAutoTable.finalY;
     if (finalY + 50 > pageHeight) {
         doc.addPage();
         finalY = 40;
     }
-    const startYAssinaturas = finalY + 10;
+    const startYAssinaturas = finalY + 15;
     const spaceBetweenBoxes = 8;
     const marginHorizontal = 15;
     const boxWidth = (pageWidth - (marginHorizontal * 2) - spaceBetweenBoxes) / 2;
@@ -221,7 +218,6 @@ export default function DetalhesRequisicaoPage() {
     doc.save(`Requisicao_${requisicao.id}_${requisicao.estabelecimentos.nome}.pdf`);
   };
 
-  // O restante do componente (JSX) para exibir a página (sem alterações)
   if (loading) { return <main><div className="form-container"><p>Carregando detalhes...</p></div></main>; }
   if (!requisicao) { return <main><div className="form-container"><p>Requisição não encontrada.</p> <Link href="/historico">Voltar</Link></div></main>; }
 
