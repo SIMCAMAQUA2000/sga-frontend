@@ -125,8 +125,10 @@ export default function DetalhesRequisicaoPage() {
     doc.setFont('helvetica', 'bold');
     doc.text(title, pageWidth / 2, 50, { align: 'center' });
 
-    // Estilos e espaçamento
-    const sectionHeadStyle = { fillColor: [233, 236, 239], textColor: [52, 58, 64], fontStyle: 'bold' as const, halign: 'center' as const };
+    // ==========================================================================
+    //  CORREÇÃO FINAL DE TIPO AQUI: USANDO STRING HEXADECIMAL
+    // ==========================================================================
+    const sectionHeadStyle = { fillColor: '#E9ECEF', textColor: '#343A40', fontStyle: 'bold', halign: 'center' as const };
     const spacerStyle = { minCellHeight: 5, styles: { lineWidth: 0 } };
 
     // Construção do corpo da tabela ÚNICA
@@ -164,19 +166,16 @@ export default function DetalhesRequisicaoPage() {
     if (hasMicro || hasFisico) {
       bodyData.push([{ content: 'ANÁLISES SOLICITADAS', colSpan: 2, styles: sectionHeadStyle }]);
       if (hasMicro && hasFisico) {
-        // CORREÇÃO AQUI: Removido o 'fontStyle' problemático
-        bodyData.push([{ content: 'MICROBIOLÓGICAS', styles: { halign:'center' } }, { content: 'FÍSICO-QUÍMICAS', styles: { halign:'center' } }]);
+        bodyData.push([{ content: 'MICROBIOLÓGICAS', styles: { fontStyle: 'bold' as const, halign:'center' as const } }, { content: 'FÍSICO-QUÍMICAS', styles: { fontStyle:'bold' as const, halign:'center' as const } }]);
         const maxRows = Math.max(paramsMicro.length, paramsFisico.length);
         for (let i = 0; i < maxRows; i++) {
             bodyData.push([ paramsMicro[i] || '', paramsFisico[i] || '' ]);
         }
       } else if (hasMicro) {
-        // CORREÇÃO AQUI: Removido o 'fontStyle' problemático
-        bodyData.push([{ content: 'MICROBIOLÓGICAS', colSpan: 2, styles: { halign:'center' } }]);
+        bodyData.push([{ content: 'MICROBIOLÓGICAS', colSpan: 2, styles: { fontStyle:'bold' as const, halign:'center' as const } }]);
         paramsMicro.forEach(p => bodyData.push([{ content: p, colSpan: 2 }]));
       } else { // hasFisico
-        // CORREÇÃO AQUI: Removido o 'fontStyle' problemático
-        bodyData.push([{ content: 'FÍSICO-QUÍMICAS', colSpan: 2, styles: { halign:'center' } }]);
+        bodyData.push([{ content: 'FÍSICO-QUÍMICAS', colSpan: 2, styles: { fontStyle:'bold' as const, halign:'center' as const } }]);
         paramsFisico.forEach(p => bodyData.push([{ content: p, colSpan: 2 }]));
       }
       bodyData.push([{ content: '', colSpan: 2, styles: spacerStyle }]);
