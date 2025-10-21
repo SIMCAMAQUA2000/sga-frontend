@@ -1,10 +1,8 @@
-// Arquivo: app/page.tsx
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '@/lib/supabaseClient';
 
 // --- Tipagens ---
 interface Estabelecimento { id: number; nome: string; cnpj_cpf: string; endereco: string; }
@@ -41,7 +39,7 @@ export default function HomePage() {
       if (estData) setEstabelecimentos(estData);
       
       const { data: paramData } = await supabase.from('parametros_analise').select('*');
-      if (paramData) setAllParams(paramData);
+      if (paramData) setAllParams(paramData as Parametro[]);
     }
     fetchInitialData();
   }, []);
@@ -58,6 +56,8 @@ export default function HomePage() {
     }
     fetchProdutos();
     setSelectedProdId('');
+    setParametrosDoProduto([]);
+    setAnalisesSelecionadas(new Set());
   }, [selectedEstId]);
 
   useEffect(() => {
@@ -71,11 +71,11 @@ export default function HomePage() {
       if (paramLinks && paramLinks.length > 0) {
         const paramIds = paramLinks.map(link => link.parametro_id);
         
-        // LINHA CORRIGIDA: Adicionamos 'aplicacao' para satisfazer a tipagem de 'Parametro'.
+        // LINHA CORRIGIDA: Adicionamos 'aplicacao' à consulta para satisfazer a tipagem de 'Parametro'.
         const { data: paramsData } = await supabase.from('parametros_analise').select('id, nome_parametro, tipo, aplicacao').in('id', paramIds);
         
         if (paramsData) {
-          setParametrosDoProduto(paramsData);
+          setParametrosDoProduto(paramsData as Parametro[]);
           setAnalisesSelecionadas(new Set(paramsData.map(p => p.id)));
         }
       } else {
@@ -272,3 +272,5 @@ export default function HomePage() {
     </main>
   );
 }
+
+

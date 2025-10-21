@@ -1,36 +1,34 @@
-// Arquivo: app/historico/[id]/page.tsx
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { supabase } from '../../../lib/supabaseClient';
+import { supabase } from '@/lib/supabaseClient';
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-// --- Tipagens ---
+// --- Tipagens (sem alterações) ---
 interface RequisicaoDetalhada {
   id: number;
   created_at: string;
   tipo_requisicao: string;
-  data_coleta: string;
-  hora_coleta: string;
-  lacre_numero: string;
-  mes_referencia: string;
-  observacao: string;
-  ponto_coleta: string;
-  lote: string;
-  data_producao: string;
-  data_validade: string;
-  produto_coletado: string;
+  data_coleta: string | null;
+  hora_coleta: string | null;
+  lacre_numero: string | null;
+  mes_referencia: string | null;
+  observacao: string | null;
+  ponto_coleta: string | null;
+  lote: string | null;
+  data_producao: string | null;
+  data_validade: string | null;
+  produto_coletado: string | null;
   estabelecimentos: {
     nome: string;
     cnpj_cpf: string;
     endereco: string;
     sim_id: string;
-  };
+  } | null;
   requisicao_analises: {
     parametros_analise: {
       nome_parametro: string;
@@ -39,15 +37,22 @@ interface RequisicaoDetalhada {
   }[] | null;
 }
 
-// Função auxiliar para converter a imagem para o formato que o PDF precisa
-function arrayBufferToBase64(buffer: ArrayBuffer) {
-  let binary = '';
-  const bytes = new Uint8Array(buffer);
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return window.btoa(binary);
+// Função para carregar imagem (sem alterações)
+async function getImageBase64(url: string) {
+    try {
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (error) {
+        console.error("Erro ao carregar a imagem do brasão:", error);
+        return null;
+    }
 }
 
 export default function DetalhesRequisicaoPage() {
@@ -55,9 +60,11 @@ export default function DetalhesRequisicaoPage() {
   const [requisicao, setRequisicao] = useState<RequisicaoDetalhada | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // useEffect para buscar dados (sem alterações)
   useEffect(() => {
     if (params.id) {
       async function fetchDetalhes() {
+        setLoading(true);
         const { data, error } = await supabase
           .from('requisicoes')
           .select(`*, estabelecimentos (*), requisicao_analises (parametros_analise (*))`)
@@ -66,9 +73,8 @@ export default function DetalhesRequisicaoPage() {
 
         if (error) {
           console.error("Erro ao buscar detalhes:", error);
-          alert("Não foi possível carregar os detalhes da requisição.");
         } else {
-          setRequisicao(data);
+          setRequisicao(data as RequisicaoDetalhada);
         }
         setLoading(false);
       }
@@ -76,25 +82,27 @@ export default function DetalhesRequisicaoPage() {
     }
   }, [params.id]);
 
-  // A função agora é 'async' para poder carregar a imagem antes de gerar o PDF
+
   const generatePDF = async () => {
-    if (!requisicao) return;
-    
-    // --- LÓGICA CORRETA PARA CARREGAR A IMAGEM ---
-    const response = await fetch('/brasao.png');
-    const imageBuffer = await response.arrayBuffer();
-    const brasaoBase64 = `data:image/png;base64,${arrayBufferToBase64(imageBuffer)}`;
-    // --- FIM DA LÓGICA DA IMAGEM ---
+    if (!requisicao || !requisicao.estabelecimentos) {
+      alert("Dados da requisição ou do estabelecimento não carregados.");
+      return;
+    }
+
+    const brasaoBase64 = await getImageBase64('/brasao.png') as string;
+    if (!brasaoBase64) {
+      alert("Não foi possível carregar a imagem do brasão para o PDF.");
+      return;
+    }
 
     const doc = new jsPDF();
-    const pageHeight = doc.internal.pageSize.height;
-    const pageWidth = doc.internal.pageSize.width;
-
-    const addHeaderAndFooter = (data: any) => {
-      // Adiciona o cabeçalho
+    const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.get('height');
+    const pageWidth = doc.internal.pageSize.width || doc.internal.pageSize.get('width');
+    
+    // Função de cabeçalho e rodapé (sem alterações)
+    const addHeaderAndFooter = () => {
       doc.addImage(brasaoBase64, 'PNG', 15, 12, 25, 25);
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10); doc.setFont('helvetica', 'bold');
       doc.text('ESTADO DO RIO GRANDE DO SUL', pageWidth / 2, 15, { align: 'center' });
       doc.setFont('helvetica', 'normal');
       doc.text('PREFEITURA MUNICIPAL DE CAMAQUÃ', pageWidth / 2, 20, { align: 'center' });
@@ -102,93 +110,123 @@ export default function DetalhesRequisicaoPage() {
       doc.setFont('helvetica', 'bold');
       doc.text('SERVIÇO DE INSPEÇÃO MUNICIPAL', pageWidth / 2, 30, { align: 'center' });
       
-      // Adiciona o rodapé
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8); doc.setFont('helvetica', 'normal');
       doc.line(15, pageHeight - 30, pageWidth - 15, pageHeight - 30);
       doc.text('SECRETARIA MUNICIPAL DE AGRICULTURA E ABASTECIMENTO', pageWidth / 2, pageHeight - 25, { align: 'center' });
       doc.text('Av. Cônego Luíz Walter Hanquet, 151 - Jardim, Camaquã - RS, 96180-000', pageWidth / 2, pageHeight - 20, { align: 'center' });
       doc.text('Email: sim.agricultura.camaqua@gmail.com', pageWidth / 2, pageHeight - 15, { align: 'center' });
       doc.text('Tel/Watts: (51) 99544-2158', pageWidth / 2, pageHeight - 10, { align: 'center' });
     };
-    
+
+    // Título Principal (sem alterações)
     const isProduto = requisicao.tipo_requisicao === 'PRODUTO';
     const title = isProduto ? "REQUISIÇÃO PARA ANÁLISE OFICIAL DE PRODUTOS" : "REQUISIÇÃO PARA ANÁLISE OFICIAL DE ÁGUA";
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(title, pageWidth / 2, 50, { align: 'center' });
 
+    // Estilos e espaçamento
+    const sectionHeadStyle = { fillColor: [233, 236, 239], textColor: [52, 58, 64], fontStyle: 'bold', halign: 'center' };
+    const spacerStyle = { minCellHeight: 5, styles: { lineWidth: 0 } };
+
+    // Construção do corpo da tabela ÚNICA
+    const bodyData = [];
+
+    // Seção 1: Estabelecimento
+    bodyData.push([{ content: 'DADOS DO ESTABELECIMENTO', colSpan: 2, styles: sectionHeadStyle }]);
+    bodyData.push([`SIM: ${requisicao.estabelecimentos.sim_id || ''}`, `CNPJ/CPF: ${requisicao.estabelecimentos.cnpj_cpf}`]);
+    bodyData.push([{ content: `ESTABELECIMENTO: ${requisicao.estabelecimentos.nome}`, colSpan: 2 }]);
+    bodyData.push([{ content: `ENDEREÇO: ${requisicao.estabelecimentos.endereco}`, colSpan: 2 }]);
+    bodyData.push([{ content: '', colSpan: 2, styles: spacerStyle }]);
+
+    // Seção 2: Amostra e Coleta
+    const coletaHead = isProduto ? 'DADOS DA AMOSTRA (PRODUTO)' : 'DADOS DA AMOSTRA (ÁGUA)';
+    bodyData.push([{ content: coletaHead, colSpan: 2, styles: sectionHeadStyle }]);
+    if (isProduto) {
+        bodyData.push(['PRODUTO COLETADO', requisicao.produto_coletado || '']);
+        bodyData.push(['LOTE', requisicao.lote || '']);
+        bodyData.push(['DATA DE PRODUÇÃO', requisicao.data_producao ? new Date(requisicao.data_producao + 'T00:00:00').toLocaleDateString('pt-BR') : '']);
+        bodyData.push(['DATA DE VALIDADE', requisicao.data_validade ? new Date(requisicao.data_validade + 'T00:00:00').toLocaleDateString('pt-BR') : '']);
+    } else {
+        bodyData.push([{ content: `PONTO DE COLETA: ${requisicao.ponto_coleta || ''}`, colSpan: 2 }]);
+    }
+    bodyData.push([{ content: 'DADOS DA COLETA', colSpan: 2, styles: sectionHeadStyle }]);
+    bodyData.push(['DATA DA COLETA', requisicao.data_coleta ? new Date(requisicao.data_coleta + 'T00:00:00').toLocaleDateString('pt-BR') : '']);
+    bodyData.push(['HORA DA COLETA', requisicao.hora_coleta || '']);
+    bodyData.push(['MÊS DE REFERÊNCIA', requisicao.mes_referencia || '']);
+    bodyData.push(['Nº DO LACRE', requisicao.lacre_numero || '']);
+    bodyData.push([{ content: '', colSpan: 2, styles: spacerStyle }]);
+
+    // Seção 3: Análises (com lógica dinâmica)
     const analises = requisicao.requisicao_analises ?? [];
-    const paramsMicro = analises.filter(p => p.parametros_analise.tipo === 'MICROBIOLOGICA').map(p => [p.parametros_analise.nome_parametro]);
-    const paramsFisico = analises.filter(p => p.parametros_analise.tipo === 'FISICO-QUIMICA').map(p => [p.parametros_analise.nome_parametro]);
-
-    const coletaBody = isProduto ? [
-      ['PRODUTO COLETADO', requisicao.produto_coletado || ''],
-      ['LOTE', requisicao.lote || ''],
-      ['DATA DE PRODUÇÃO', requisicao.data_producao ? new Date(requisicao.data_producao).toLocaleDateString('pt-BR') : ''],
-      ['DATA DE VALIDADE', requisicao.data_validade ? new Date(requisicao.data_validade).toLocaleDateString('pt-BR') : ''],
-    ] : [
-      ['PONTO DE COLETA', requisicao.ponto_coleta || ''],
-    ];
-
-    const coletaInfoBody = [
-        ['DATA DA COLETA', requisicao.data_coleta ? new Date(requisicao.data_coleta).toLocaleDateString('pt-BR') : ''],
-        ['HORA DA COLETA', requisicao.hora_coleta || ''],
-        ['MÊS DE REFERÊNCIA', requisicao.mes_referencia || ''],
-        ['Nº DO LACRE', requisicao.lacre_numero || ''],
-    ];
+    const paramsMicro = analises.filter(p => p.parametros_analise?.tipo === 'MICROBIOLOGICA').map(p => `(X) ${p.parametros_analise.nome_parametro}`);
+    const paramsFisico = analises.filter(p => p.parametros_analise?.tipo === 'FISICO-QUIMICA').map(p => `(X) ${p.parametros_analise.nome_parametro}`);
+    const hasMicro = paramsMicro.length > 0;
+    const hasFisico = paramsFisico.length > 0;
     
-    let finalY = 0;
-
-    autoTable(doc, {
-      head: [[title]],
-      headStyles: { halign: 'center', fontSize: 14, fontStyle: 'bold' },
-      startY: 40,
-      body: [
-        ['SIM', requisicao.estabelecimentos.sim_id || ''],
-        ['ESTABELECIMENTO', requisicao.estabelecimentos.nome],
-        ['ENDEREÇO', requisicao.estabelecimentos.endereco],
-        ['CNPJ/CPF', requisicao.estabelecimentos.cnpj_cpf],
-      ],
-      theme: 'grid', styles: { fontSize: 10, cellPadding: 1.5 },
-      didDrawPage: (data) => addHeaderAndFooter(data),
-    });
-
-    autoTable(doc, { head: [['ANÁLISES SOLICITADAS']], body: [['MICROBIOLÓGICAS']], theme: 'grid', styles: { fontSize: 10, cellPadding: 1.5 }, didDrawPage: (data) => addHeaderAndFooter(data) });
-    if (paramsMicro.length > 0) { autoTable(doc, { body: paramsMicro, theme: 'grid', styles: { fontSize: 9, cellPadding: 1.5 }, didDrawPage: (data) => addHeaderAndFooter(data) }); }
-
-    autoTable(doc, { body: [['FÍSICO-QUÍMICAS']], theme: 'grid', styles: { fontSize: 10, cellPadding: 1.5 }, didDrawPage: (data) => addHeaderAndFooter(data) });
-    if (paramsFisico.length > 0) { autoTable(doc, { body: paramsFisico, theme: 'grid', styles: { fontSize: 9, cellPadding: 1.5 }, didDrawPage: (data) => addHeaderAndFooter(data) }); }
-
-    autoTable(doc, { body: coletaBody, theme: 'grid', styles: { fontSize: 10, cellPadding: 1.5 }, didDrawPage: (data) => addHeaderAndFooter(data) });
-    autoTable(doc, { body: coletaInfoBody, theme: 'grid', styles: { fontSize: 10, cellPadding: 1.5 }, didDrawPage: (data) => addHeaderAndFooter(data) });
-    
-    autoTable(doc, {
-      body: [['OBSERVAÇÕES', requisicao.observacao || '']],
-      theme: 'grid',
-      styles: { fontSize: 10, cellPadding: 1.5, minCellHeight: 20 },
-      didDrawPage: (data) => {
-        addHeaderAndFooter(data);
-        finalY = data.cursor.y;
+    if (hasMicro || hasFisico) {
+      bodyData.push([{ content: 'ANÁLISES SOLICITADAS', colSpan: 2, styles: sectionHeadStyle }]);
+      if (hasMicro && hasFisico) {
+        bodyData.push([{ content: 'MICROBIOLÓGICAS', styles: { fontStyle:'bold', halign:'center' } }, { content: 'FÍSICO-QUÍMICAS', styles: { fontStyle:'bold', halign:'center' } }]);
+        const maxRows = Math.max(paramsMicro.length, paramsFisico.length);
+        for (let i = 0; i < maxRows; i++) {
+            bodyData.push([ paramsMicro[i] || '', paramsFisico[i] || '' ]);
+        }
+      } else if (hasMicro) {
+        bodyData.push([{ content: 'MICROBIOLÓGICAS', colSpan: 2, styles: { fontStyle:'bold', halign:'center' } }]);
+        paramsMicro.forEach(p => bodyData.push([{ content: p, colSpan: 2 }]));
+      } else { // hasFisico
+        bodyData.push([{ content: 'FÍSICO-QUÍMICAS', colSpan: 2, styles: { fontStyle:'bold', halign:'center' } }]);
+        paramsFisico.forEach(p => bodyData.push([{ content: p, colSpan: 2 }]));
       }
+      bodyData.push([{ content: '', colSpan: 2, styles: spacerStyle }]);
+    }
+    
+    // Seção 4: Observações
+    bodyData.push([{ content: 'OBSERVAÇÕES', colSpan: 2, styles: sectionHeadStyle }]);
+    bodyData.push([{ content: requisicao.observacao || 'Nenhuma observação.', colSpan: 2, styles: { minCellHeight: 25 } }]);
+
+    // DESENHA A TABELA PRINCIPAL
+    autoTable(doc, {
+      startY: 55,
+      body: bodyData,
+      theme: 'grid',
+      didDrawPage: () => { addHeaderAndFooter(); },
     });
 
-    if (finalY + 30 > pageHeight) {
+    // Seção de Assinaturas (feita separadamente)
+    let finalY = (doc as any).lastAutoTable.finalY;
+    if (finalY + 50 > pageHeight) {
         doc.addPage();
         finalY = 40;
-        addHeaderAndFooter({} as any);
     }
+    const startYAssinaturas = finalY + 10;
+    const spaceBetweenBoxes = 8;
+    const marginHorizontal = 15;
+    const boxWidth = (pageWidth - (marginHorizontal * 2) - spaceBetweenBoxes) / 2;
 
-    doc.text('_________________________', 30, finalY + 20);
-    doc.text('Estabelecimento', 40, finalY + 25);
-    doc.text('_________________________', 120, finalY + 20);
-    doc.text('Médico Veterinário Oficial', 125, finalY + 25);
+    autoTable(doc, {
+        startY: startYAssinaturas,
+        head: [['RESPONSÁVEL LEGAL']], headStyles: sectionHeadStyle,
+        body: [[' ']], bodyStyles: { minCellHeight: 25 },
+        theme: 'grid', tableWidth: boxWidth, margin: { left: marginHorizontal },
+    });
+    autoTable(doc, {
+        startY: startYAssinaturas,
+        head: [['MÉDICO VETERINÁRIO OFICIAL']], headStyles: sectionHeadStyle,
+        body: [[' ']], bodyStyles: { minCellHeight: 25 },
+        theme: 'grid', tableWidth: boxWidth, margin: { left: marginHorizontal + boxWidth + spaceBetweenBoxes },
+    });
     
     doc.save(`Requisicao_${requisicao.id}_${requisicao.estabelecimentos.nome}.pdf`);
   };
 
+  // O restante do componente (JSX) para exibir a página (sem alterações)
   if (loading) { return <main><div className="form-container"><p>Carregando detalhes...</p></div></main>; }
-  if (!requisicao) { return <main><div className="form-container"><p>Requisição não encontrada.</p></div></main>; }
+  if (!requisicao) { return <main><div className="form-container"><p>Requisição não encontrada.</p> <Link href="/historico">Voltar</Link></div></main>; }
 
-  const paramsMicro = (requisicao.requisicao_analises ?? []).filter(p => p.parametros_analise.tipo === 'MICROBIOLOGICA');
-  const paramsFisico = (requisicao.requisicao_analises ?? []).filter(p => p.parametros_analise.tipo === 'FISICO-QUIMICA');
+  const paramsMicro = (requisicao.requisicao_analises ?? []).filter(p => p.parametros_analise?.tipo === 'MICROBIOLOGICA');
+  const paramsFisico = (requisicao.requisicao_analises ?? []).filter(p => p.parametros_analise?.tipo === 'FISICO-QUIMICA');
 
   return (
     <main>
@@ -204,15 +242,15 @@ export default function DetalhesRequisicaoPage() {
 
         <div className="details-section">
           <h3>Dados do Estabelecimento</h3>
-          <p><strong>Nome:</strong> {requisicao.estabelecimentos.nome}</p>
-          <p><strong>CNPJ/CPF:</strong> {requisicao.estabelecimentos.cnpj_cpf}</p>
-          <p><strong>Endereço:</strong> {requisicao.estabelecimentos.endereco}</p>
+          <p><strong>Nome:</strong> {requisicao.estabelecimentos?.nome || 'N/A'}</p>
+          <p><strong>CNPJ/CPF:</strong> {requisicao.estabelecimentos?.cnpj_cpf || 'N/A'}</p>
+          <p><strong>Endereço:</strong> {requisicao.estabelecimentos?.endereco || 'N/A'}</p>
         </div>
 
         <div className="details-section">
           <h3>Dados da Coleta</h3>
           <div className="details-grid">
-            <p><strong>Data da Coleta:</strong> {requisicao.data_coleta ? new Date(requisicao.data_coleta).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            <p><strong>Data da Coleta:</strong> {requisicao.data_coleta ? new Date(requisicao.data_coleta + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</p>
             <p><strong>Hora da Coleta:</strong> {requisicao.hora_coleta || 'N/A'}</p>
             <p><strong>Mês de Referência:</strong> {requisicao.mes_referencia || 'N/A'}</p>
             <p><strong>Nº do Lacre:</strong> {requisicao.lacre_numero || 'N/A'}</p>
@@ -223,10 +261,10 @@ export default function DetalhesRequisicaoPage() {
           <h3>Dados da Amostra</h3>
           {requisicao.tipo_requisicao === 'PRODUTO' ? (
             <div className="details-grid">
-              <p><strong>Produto:</strong> {requisicao.produto_coletado}</p>
+              <p><strong>Produto:</strong> {requisicao.produto_coletado || 'N/A'}</p>
               <p><strong>Lote:</strong> {requisicao.lote || 'N/A'}</p>
-              <p><strong>Produção:</strong> {requisicao.data_producao ? new Date(requisicao.data_producao).toLocaleDateString('pt-BR') : 'N/A'}</p>
-              <p><strong>Validade:</strong> {requisicao.data_validade ? new Date(requisicao.data_validade).toLocaleDateString('pt-BR') : 'N/A'}</p>
+              <p><strong>Produção:</strong> {requisicao.data_producao ? new Date(requisicao.data_producao + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</p>
+              <p><strong>Validade:</strong> {requisicao.data_validade ? new Date(requisicao.data_validade + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</p>
             </div>
           ) : (
             <p><strong>Ponto de Coleta (Água):</strong> {requisicao.ponto_coleta || 'N/A'}</p>
@@ -235,21 +273,9 @@ export default function DetalhesRequisicaoPage() {
 
         <div className="details-section">
           <h3>Análises Solicitadas</h3>
-          {paramsMicro.length > 0 && (
-            <>
-              <h4>Microbiológicas</h4>
-              <ul>{paramsMicro.map(p => <li key={p.parametros_analise.nome_parametro}>{p.parametros_analise.nome_parametro}</li>)}</ul>
-            </>
-          )}
-          {paramsFisico.length > 0 && (
-            <>
-              <h4>Físico-químicas</h4>
-              <ul>{paramsFisico.map(p => <li key={p.parametros_analise.nome_parametro}>{p.parametros_analise.nome_parametro}</li>)}</ul>
-            </>
-          )}
-          {(paramsMicro.length === 0 && paramsFisico.length === 0) && (
-            <p>Nenhuma análise solicitada para esta requisição.</p>
-          )}
+          {paramsMicro.length > 0 && ( <> <h4>Microbiológicas</h4> <ul>{paramsMicro.map(p => <li key={p.parametros_analise.nome_parametro}>{p.parametros_analise.nome_parametro}</li>)}</ul> </> )}
+          {paramsFisico.length > 0 && ( <> <h4>Físico-químicas</h4> <ul>{paramsFisico.map(p => <li key={p.parametros_analise.nome_parametro}>{p.parametros_analise.nome_parametro}</li>)}</ul> </> )}
+          {(paramsMicro.length === 0 && paramsFisico.length === 0) && (<p>Nenhuma análise solicitada.</p>)}
         </div>
         
         {requisicao.observacao && (
