@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import autoTable, { RowInput } from 'jspdf-autotable';
 
 // --- Tipagens (sem alterações) ---
 interface RequisicaoDetalhada {
@@ -126,16 +126,15 @@ export default function DetalhesRequisicaoPage() {
     doc.text(title, pageWidth / 2, 50, { align: 'center' });
 
     // ==========================================================================
-    //  CORREÇÃO FINAL DE TIPO AQUI: USANDO STRING HEXADECIMAL
+    //  CORREÇÃO ESTRUTURAL DEFINITIVA
     // ==========================================================================
-    const sectionHeadStyle = { fillColor: '#E9ECEF', textColor: '#343A40', fontStyle: 'bold', halign: 'center' as const };
+    const sectionHeadStyle = { fillColor: '#E9ECEF', textColor: '#343A40', fontStyle: 'bold' as const, halign: 'center' as const };
     const spacerStyle = { minCellHeight: 5, styles: { lineWidth: 0 } };
 
-    // Construção do corpo da tabela ÚNICA
-    const bodyData = [];
+    const bodyData: RowInput[] = [];
 
     bodyData.push([{ content: 'DADOS DO ESTABELECIMENTO', colSpan: 2, styles: sectionHeadStyle }]);
-    bodyData.push([`SIM: ${requisicao.estabelecimentos.sim_id || ''}`, `CNPJ/CPF: ${requisicao.estabelecimentos.cnpj_cpf}`]);
+    bodyData.push([{ content: `SIM: ${requisicao.estabelecimentos.sim_id || ''}` }, { content: `CNPJ/CPF: ${requisicao.estabelecimentos.cnpj_cpf}` }]);
     bodyData.push([{ content: `ESTABELECIMENTO: ${requisicao.estabelecimentos.nome}`, colSpan: 2 }]);
     bodyData.push([{ content: `ENDEREÇO: ${requisicao.estabelecimentos.endereco}`, colSpan: 2 }]);
     bodyData.push([{ content: '', colSpan: 2, styles: spacerStyle }]);
@@ -143,18 +142,18 @@ export default function DetalhesRequisicaoPage() {
     const coletaHead = isProduto ? 'DADOS DA AMOSTRA (PRODUTO)' : 'DADOS DA AMOSTRA (ÁGUA)';
     bodyData.push([{ content: coletaHead, colSpan: 2, styles: sectionHeadStyle }]);
     if (isProduto) {
-        bodyData.push(['PRODUTO COLETADO', requisicao.produto_coletado || '']);
-        bodyData.push(['LOTE', requisicao.lote || '']);
-        bodyData.push(['DATA DE PRODUÇÃO', requisicao.data_producao ? new Date(requisicao.data_producao + 'T00:00:00').toLocaleDateString('pt-BR') : '']);
-        bodyData.push(['DATA DE VALIDADE', requisicao.data_validade ? new Date(requisicao.data_validade + 'T00:00:00').toLocaleDateString('pt-BR') : '']);
+        bodyData.push([{ content: 'PRODUTO COLETADO' }, { content: requisicao.produto_coletado || '' }]);
+        bodyData.push([{ content: 'LOTE' }, { content: requisicao.lote || '' }]);
+        bodyData.push([{ content: 'DATA DE PRODUÇÃO' }, { content: requisicao.data_producao ? new Date(requisicao.data_producao + 'T00:00:00').toLocaleDateString('pt-BR') : '' }]);
+        bodyData.push([{ content: 'DATA DE VALIDADE' }, { content: requisicao.data_validade ? new Date(requisicao.data_validade + 'T00:00:00').toLocaleDateString('pt-BR') : '' }]);
     } else {
         bodyData.push([{ content: `PONTO DE COLETA: ${requisicao.ponto_coleta || ''}`, colSpan: 2 }]);
     }
     bodyData.push([{ content: 'DADOS DA COLETA', colSpan: 2, styles: sectionHeadStyle }]);
-    bodyData.push(['DATA DA COLETA', requisicao.data_coleta ? new Date(requisicao.data_coleta + 'T00:00:00').toLocaleDateString('pt-BR') : '']);
-    bodyData.push(['HORA DA COLETA', requisicao.hora_coleta || '']);
-    bodyData.push(['MÊS DE REFERÊNCIA', requisicao.mes_referencia || '']);
-    bodyData.push(['Nº DO LACRE', requisicao.lacre_numero || '']);
+    bodyData.push([{ content: 'DATA DA COLETA' }, { content: requisicao.data_coleta ? new Date(requisicao.data_coleta + 'T00:00:00').toLocaleDateString('pt-BR') : '' }]);
+    bodyData.push([{ content: 'HORA DA COLETA' }, { content: requisicao.hora_coleta || '' }]);
+    bodyData.push([{ content: 'MÊS DE REFERÊNCIA' }, { content: requisicao.mes_referencia || '' }]);
+    bodyData.push([{ content: 'Nº DO LACRE' }, { content: requisicao.lacre_numero || '' }]);
     bodyData.push([{ content: '', colSpan: 2, styles: spacerStyle }]);
 
     const analises = requisicao.requisicao_analises ?? [];
@@ -169,7 +168,7 @@ export default function DetalhesRequisicaoPage() {
         bodyData.push([{ content: 'MICROBIOLÓGICAS', styles: { fontStyle: 'bold' as const, halign:'center' as const } }, { content: 'FÍSICO-QUÍMICAS', styles: { fontStyle:'bold' as const, halign:'center' as const } }]);
         const maxRows = Math.max(paramsMicro.length, paramsFisico.length);
         for (let i = 0; i < maxRows; i++) {
-            bodyData.push([ paramsMicro[i] || '', paramsFisico[i] || '' ]);
+            bodyData.push([{ content: paramsMicro[i] || '' }, { content: paramsFisico[i] || '' }]);
         }
       } else if (hasMicro) {
         bodyData.push([{ content: 'MICROBIOLÓGICAS', colSpan: 2, styles: { fontStyle:'bold' as const, halign:'center' as const } }]);
