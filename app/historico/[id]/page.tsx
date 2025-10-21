@@ -126,7 +126,7 @@ export default function DetalhesRequisicaoPage() {
     doc.text(title, pageWidth / 2, 50, { align: 'center' });
 
     // ==========================================================================
-    //  CORREÇÃO ESTRUTURAL DEFINITIVA
+    //  CORREÇÃO FINAL DE ESTRUTURA E TIPO
     // ==========================================================================
     const sectionHeadStyle = { fillColor: '#E9ECEF', textColor: '#343A40', fontStyle: 'bold' as const, halign: 'center' as const };
     const spacerStyle = { minCellHeight: 5, styles: { lineWidth: 0 } };
