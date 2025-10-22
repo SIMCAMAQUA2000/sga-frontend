@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabaseClient';
 import jsPDF from 'jspdf';
 import autoTable, { RowInput } from 'jspdf-autotable';
 
-// --- Tipagens (sem alterações) ---
+// --- Tipagens (com temperaturas) ---
 interface RequisicaoDetalhada {
   id: number;
   created_at: string;
@@ -23,6 +23,8 @@ interface RequisicaoDetalhada {
   data_producao: string | null;
   data_validade: string | null;
   produto_coletado: string | null;
+  temperatura_produto: string | null;
+  temperatura_ambiente: string | null;
   estabelecimentos: {
     nome: string;
     cnpj_cpf: string;
@@ -92,25 +94,26 @@ export default function DetalhesRequisicaoPage() {
     const pageWidth = doc.internal.pageSize.width;
     
     // ==========================================================================
-    //  AJUSTE FINAL NO CABEÇALHO (COM LINHAS INTERNAS)
+    //  AJUSTE 1: CABEÇALHO E RODAPÉ ENCOLHIDOS
     // ==========================================================================
     const addHeaderAndFooter = () => {
+      // Cabeçalho com caixa
       autoTable(doc, {
         startY: 10,
         theme: 'grid',
         margin: { left: 15, right: 15 },
         columnStyles: {
           0: { cellWidth: 25, halign: 'center', valign: 'middle' },
-          1: { halign: 'center', valign: 'middle', fontSize: 9 }
+          1: { halign: 'center', valign: 'middle', fontSize: 8.5 } // Fonte menor
         },
         body: [
           [
             { content: '', rowSpan: 4, styles: { cellPadding: 0 } },
-            { content: 'ESTADO DO RIO GRANDE DO SUL', styles: { fontStyle: 'bold' } }
+            { content: 'ESTADO DO RIO GRANDE DO SUL', styles: { fontStyle: 'bold', cellPadding: 0.8 } }
           ],
-          [ { content: 'PREFEITURA MUNICIPAL DE CAMAQUÃ' } ],
-          [ { content: 'SECRETARIA MUNICIPAL DE AGRICULTURA E ABASTECIMENTO' } ],
-          [ { content: 'SERVIÇO DE INSPEÇÃO MUNICIPAL', styles: { fontStyle: 'bold' } } ]
+          [ { content: 'PREFEITURA MUNICIPAL DE CAMAQUÃ', styles: { cellPadding: 0.8 } } ],
+          [ { content: 'SECRETARIA MUNICIPAL DE AGRICULTURA E ABASTECIMENTO', styles: { cellPadding: 0.8 } } ],
+          [ { content: 'SERVIÇO DE INSPEÇÃO MUNICIPAL', styles: { fontStyle: 'bold', cellPadding: 0.8 } } ]
         ],
         didDrawCell: (data) => {
           if (data.row.index === 0 && data.column.index === 0 && brasaoBase64) {
@@ -123,14 +126,14 @@ export default function DetalhesRequisicaoPage() {
         },
       });
       
-      // Rodapé (sem alterações)
-      doc.setFontSize(7.5);
+      // Rodapé mais compacto
+      doc.setFontSize(7); // Fonte bem pequena
       doc.setFont('helvetica', 'normal');
-      doc.line(15, pageHeight - 25, pageWidth - 15, pageHeight - 25);
-      doc.text('SECRETARIA MUNICIPAL DE AGRICULTURA E ABASTECIMENTO', pageWidth / 2, pageHeight - 21, { align: 'center' });
-      doc.text('Av. Cônego Luíz Walter Hanquet, 151 - Jardim, Camaquã - RS, 96180-000', pageWidth / 2, pageHeight - 17, { align: 'center' });
-      doc.text('Email: sim.agricultura.camaqua@gmail.com', pageWidth / 2, pageHeight - 13, { align: 'center' });
-      doc.text('Tel/Watts: (51) 99544-2158', pageWidth / 2, pageHeight - 9, { align: 'center' });
+      doc.line(15, pageHeight - 22, pageWidth - 15, pageHeight - 22);
+      doc.text('SECRETARIA MUNICIPAL DE AGRICULTURA E ABASTECIMENTO', pageWidth / 2, pageHeight - 19, { align: 'center' });
+      doc.text('Av. Cônego Luíz Walter Hanquet, 151 - Jardim, Camaquã - RS, 96180-000', pageWidth / 2, pageHeight - 15.5, { align: 'center' });
+      doc.text('Email: sim.agricultura.camaqua@gmail.com', pageWidth / 2, pageHeight - 12, { align: 'center' });
+      doc.text('Tel/Watts: (51) 99544-2158', pageWidth / 2, pageHeight - 8.5, { align: 'center' });
     };
 
     const isProduto = requisicao.tipo_requisicao === 'PRODUTO';
@@ -143,6 +146,7 @@ export default function DetalhesRequisicaoPage() {
     const spacerStyle = { minCellHeight: 3, styles: { lineWidth: 0 } };
 
     const bodyData: RowInput[] = [];
+
     bodyData.push([{ content: 'DADOS DO ESTABELECIMENTO', colSpan: 2, styles: sectionHeadStyle }]);
     bodyData.push([{ content: `SIM: ${requisicao.estabelecimentos.sim_id || ''}` }, { content: `CNPJ/CPF: ${requisicao.estabelecimentos.cnpj_cpf}` }]);
     bodyData.push([{ content: `ESTABELECIMENTO: ${requisicao.estabelecimentos.nome}`, colSpan: 2 }]);
@@ -162,6 +166,13 @@ export default function DetalhesRequisicaoPage() {
     bodyData.push([{ content: 'DADOS DA COLETA', colSpan: 2, styles: sectionHeadStyle }]);
     bodyData.push([{ content: 'DATA DA COLETA' }, { content: requisicao.data_coleta ? new Date(requisicao.data_coleta + 'T00:00:00').toLocaleDateString('pt-BR') : '' }]);
     bodyData.push([{ content: 'HORA DA COLETA' }, { content: requisicao.hora_coleta || '' }]);
+    // ==========================================================================
+    //  AJUSTE 2: TEMPERATURAS LADO A LADO
+    // ==========================================================================
+    bodyData.push([
+      { content: `TEMP. PRODUTO (°C): ${requisicao.temperatura_produto || ''}` }, 
+      { content: `TEMP. AMBIENTE (°C): ${requisicao.temperatura_ambiente || ''}` }
+    ]);
     bodyData.push([{ content: 'MÊS DE REFERÊNCIA' }, { content: requisicao.mes_referencia || '' }]);
     bodyData.push([{ content: 'Nº DO LACRE' }, { content: requisicao.lacre_numero || '' }]);
     bodyData.push([{ content: '', colSpan: 2, styles: spacerStyle }]);
@@ -199,7 +210,7 @@ export default function DetalhesRequisicaoPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let finalY = (doc as any).lastAutoTable.finalY;
     const signatureSectionHeight = 40; 
-    const footerStartY = pageHeight - 30;
+    const footerStartY = pageHeight - 25; // Posição do topo do rodapé
     if (finalY + signatureSectionHeight > footerStartY) {
         doc.addPage();
         finalY = 40;
@@ -232,7 +243,17 @@ export default function DetalhesRequisicaoPage() {
         </div>
         <hr style={{ margin: '1rem 0' }} />
         <div className="details-section"><h3>Dados do Estabelecimento</h3><p><strong>Nome:</strong> {requisicao.estabelecimentos?.nome || 'N/A'}</p><p><strong>CNPJ/CPF:</strong> {requisicao.estabelecimentos?.cnpj_cpf || 'N/A'}</p><p><strong>Endereço:</strong> {requisicao.estabelecimentos?.endereco || 'N/A'}</p></div>
-        <div className="details-section"><h3>Dados da Coleta</h3><div className="details-grid"><p><strong>Data da Coleta:</strong> {requisicao.data_coleta ? new Date(requisicao.data_coleta + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</p><p><strong>Hora da Coleta:</strong> {requisicao.hora_coleta || 'N/A'}</p><p><strong>Mês de Referência:</strong> {requisicao.mes_referencia || 'N/A'}</p><p><strong>Nº do Lacre:</strong> {requisicao.lacre_numero || 'N/A'}</p></div></div>
+        <div className="details-section">
+          <h3>Dados da Coleta</h3>
+          <div className="details-grid">
+            <p><strong>Data da Coleta:</strong> {requisicao.data_coleta ? new Date(requisicao.data_coleta + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</p>
+            <p><strong>Hora da Coleta:</strong> {requisicao.hora_coleta || 'N/A'}</p>
+            <p><strong>Temp. Produto:</strong> {requisicao.temperatura_produto ? `${requisicao.temperatura_produto}°C` : 'N/A'}</p>
+            <p><strong>Temp. Ambiente:</strong> {requisicao.temperatura_ambiente ? `${requisicao.temperatura_ambiente}°C` : 'N/A'}</p>
+            <p><strong>Mês de Referência:</strong> {requisicao.mes_referencia || 'N/A'}</p>
+            <p><strong>Nº do Lacre:</strong> {requisicao.lacre_numero || 'N/A'}</p>
+          </div>
+        </div>
         <div className="details-section"><h3>Dados da Amostra</h3>{requisicao.tipo_requisicao === 'PRODUTO' ? (<div className="details-grid"><p><strong>Produto:</strong> {requisicao.produto_coletado || 'N/A'}</p><p><strong>Lote:</strong> {requisicao.lote || 'N/A'}</p><p><strong>Produção:</strong> {requisicao.data_producao ? new Date(requisicao.data_producao + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</p><p><strong>Validade:</strong> {requisicao.data_validade ? new Date(requisicao.data_validade + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</p></div>) : (<p><strong>Ponto de Coleta (Água):</strong> {requisicao.ponto_coleta || 'N/A'}</p>)}</div>
         <div className="details-section"><h3>Análises Solicitadas</h3>{paramsMicro.length > 0 && ( <> <h4>Microbiológicas</h4> <ul>{paramsMicro.map(p => <li key={p.parametros_analise.nome_parametro}>{p.parametros_analise.nome_parametro}</li>)}</ul> </> )}{paramsFisico.length > 0 && ( <> <h4>Físico-químicas</h4> <ul>{paramsFisico.map(p => <li key={p.parametros_analise.nome_parametro}>{p.parametros_analise.nome_parametro}</li>)}</ul> </> )}{(paramsMicro.length === 0 && paramsFisico.length === 0) && (<p>Nenhuma análise solicitada.</p>)}</div>
         {requisicao.observacao && (<div className="details-section"><h3>Observações</h3><p>{requisicao.observacao}</p></div>)}
