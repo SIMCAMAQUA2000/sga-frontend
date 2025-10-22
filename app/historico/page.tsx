@@ -12,9 +12,9 @@ interface Requisicao {
   created_at: string;
   tipo_requisicao: string;
   data_coleta: string | null;
-  estabelecimentos: { // Deve ser um array de objetos
+  estabelecimentos: { // Deve ser um objeto único, não um array
     nome: string;
-  }[] | null;
+  } | null;
 }
 
 export default function HistoricoPage() {
@@ -80,8 +80,8 @@ export default function HistoricoPage() {
               {requisicoes.map((req) => (
                 <tr key={req.id}>
                   <td>{req.id}</td>
-                  {/* CORREÇÃO AQUI: Acessamos o primeiro item do array */}
-                  <td>{req.estabelecimentos?.[0]?.nome || 'N/A'}</td>
+                  {/* CORREÇÃO AQUI: Acessamos a propriedade 'nome' diretamente */}
+                  <td>{req.estabelecimentos?.nome || 'N/A'}</td>
                   <td>{req.tipo_requisicao}</td>
                   <td>{req.data_coleta ? new Date(req.data_coleta + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</td>
                   <td>

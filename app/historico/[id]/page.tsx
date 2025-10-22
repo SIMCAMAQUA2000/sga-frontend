@@ -91,40 +91,58 @@ export default function DetalhesRequisicaoPage() {
     const pageHeight = doc.internal.pageSize.height;
     const pageWidth = doc.internal.pageSize.width;
     
+    // ==========================================================================
+    //  AJUSTE FINAL NO CABEÇALHO (COM LINHAS INTERNAS)
+    // ==========================================================================
     const addHeaderAndFooter = () => {
-      doc.addImage(brasaoBase64, 'PNG', 15, 12, 25, 25);
-      doc.setFontSize(10); doc.setFont('helvetica', 'bold');
-      doc.text('ESTADO DO RIO GRANDE DO SUL', pageWidth / 2, 15, { align: 'center' });
+      autoTable(doc, {
+        startY: 10,
+        theme: 'grid',
+        margin: { left: 15, right: 15 },
+        columnStyles: {
+          0: { cellWidth: 25, halign: 'center', valign: 'middle' },
+          1: { halign: 'center', valign: 'middle', fontSize: 9 }
+        },
+        body: [
+          [
+            { content: '', rowSpan: 4, styles: { cellPadding: 0 } },
+            { content: 'ESTADO DO RIO GRANDE DO SUL', styles: { fontStyle: 'bold' } }
+          ],
+          [ { content: 'PREFEITURA MUNICIPAL DE CAMAQUÃ' } ],
+          [ { content: 'SECRETARIA MUNICIPAL DE AGRICULTURA E ABASTECIMENTO' } ],
+          [ { content: 'SERVIÇO DE INSPEÇÃO MUNICIPAL', styles: { fontStyle: 'bold' } } ]
+        ],
+        didDrawCell: (data) => {
+          if (data.row.index === 0 && data.column.index === 0 && brasaoBase64) {
+            const brasaoSize = 22;
+            doc.addImage(brasaoBase64, 'PNG',
+              data.cell.x + (data.cell.width - brasaoSize) / 2,
+              data.cell.y + (data.cell.height - brasaoSize) / 2,
+              brasaoSize, brasaoSize);
+          }
+        },
+      });
+      
+      // Rodapé (sem alterações)
+      doc.setFontSize(7.5);
       doc.setFont('helvetica', 'normal');
-      doc.text('PREFEITURA MUNICIPAL DE CAMAQUÃ', pageWidth / 2, 20, { align: 'center' });
-      doc.text('SECRETARIA MUNICIPAL DE AGRICULTURA E ABASTECIMENTO', pageWidth / 2, 25, { align: 'center' });
-      doc.setFont('helvetica', 'bold');
-      doc.text('SERVIÇO DE INSPEÇÃO MUNICIPAL', pageWidth / 2, 30, { align: 'center' });
-      doc.setFontSize(8); doc.setFont('helvetica', 'normal');
-      doc.line(15, pageHeight - 30, pageWidth - 15, pageHeight - 30);
-      doc.text('SECRETARIA MUNICIPAL DE AGRICULTURA E ABASTECIMENTO', pageWidth / 2, pageHeight - 25, { align: 'center' });
-      doc.text('Av. Cônego Luíz Walter Hanquet, 151 - Jardim, Camaquã - RS, 96180-000', pageWidth / 2, pageHeight - 20, { align: 'center' });
-      doc.text('Email: sim.agricultura.camaqua@gmail.com', pageWidth / 2, pageHeight - 15, { align: 'center' });
-      doc.text('Tel/Watts: (51) 99544-2158', pageWidth / 2, pageHeight - 10, { align: 'center' });
+      doc.line(15, pageHeight - 25, pageWidth - 15, pageHeight - 25);
+      doc.text('SECRETARIA MUNICIPAL DE AGRICULTURA E ABASTECIMENTO', pageWidth / 2, pageHeight - 21, { align: 'center' });
+      doc.text('Av. Cônego Luíz Walter Hanquet, 151 - Jardim, Camaquã - RS, 96180-000', pageWidth / 2, pageHeight - 17, { align: 'center' });
+      doc.text('Email: sim.agricultura.camaqua@gmail.com', pageWidth / 2, pageHeight - 13, { align: 'center' });
+      doc.text('Tel/Watts: (51) 99544-2158', pageWidth / 2, pageHeight - 9, { align: 'center' });
     };
 
     const isProduto = requisicao.tipo_requisicao === 'PRODUTO';
     const title = isProduto ? "REQUISIÇÃO PARA ANÁLISE OFICIAL DE PRODUTOS" : "REQUISIÇÃO PARA ANÁLISE OFICIAL DE ÁGUA";
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    // ==========================================================================
-    //  AJUSTE 1: Puxa o título um pouco para cima
-    // ==========================================================================
     doc.text(title, pageWidth / 2, 45, { align: 'center' });
 
-    const sectionHeadStyle = { fillColor: '#E9ECEF', textColor: '#343A40', fontStyle: 'bold' as const, halign: 'center' as const, lineWidth: 0.1, lineColor: 0 };
-    // ==========================================================================
-    //  AJUSTE 2: Diminui ainda mais o espaçador invisível
-    // ==========================================================================
-    const spacerStyle = { minCellHeight: 2, styles: { lineWidth: 0 } };
+    const sectionHeadStyle = { fillColor: '#E9ECEF', textColor: '#343A40', fontStyle: 'bold' as const, halign: 'center' as const };
+    const spacerStyle = { minCellHeight: 3, styles: { lineWidth: 0 } };
 
     const bodyData: RowInput[] = [];
-
     bodyData.push([{ content: 'DADOS DO ESTABELECIMENTO', colSpan: 2, styles: sectionHeadStyle }]);
     bodyData.push([{ content: `SIM: ${requisicao.estabelecimentos.sim_id || ''}` }, { content: `CNPJ/CPF: ${requisicao.estabelecimentos.cnpj_cpf}` }]);
     bodyData.push([{ content: `ESTABELECIMENTO: ${requisicao.estabelecimentos.nome}`, colSpan: 2 }]);
@@ -140,11 +158,7 @@ export default function DetalhesRequisicaoPage() {
     } else {
         bodyData.push([{ content: `PONTO DE COLETA: ${requisicao.ponto_coleta || ''}`, colSpan: 2 }]);
     }
-    // ==========================================================================
-    //  AJUSTE 3: Espaçador entre Dados da Amostra e Dados da Coleta
-    // ==========================================================================
     bodyData.push([{ content: '', colSpan: 2, styles: { minCellHeight: 4, lineWidth: 0 } }]);
-    
     bodyData.push([{ content: 'DADOS DA COLETA', colSpan: 2, styles: sectionHeadStyle }]);
     bodyData.push([{ content: 'DATA DA COLETA' }, { content: requisicao.data_coleta ? new Date(requisicao.data_coleta + 'T00:00:00').toLocaleDateString('pt-BR') : '' }]);
     bodyData.push([{ content: 'HORA DA COLETA' }, { content: requisicao.hora_coleta || '' }]);
@@ -172,52 +186,28 @@ export default function DetalhesRequisicaoPage() {
       bodyData.push([{ content: '', colSpan: 2, styles: spacerStyle }]);
     }
     bodyData.push([{ content: 'OBSERVAÇÕES', colSpan: 2, styles: sectionHeadStyle }]);
-    // ==========================================================================
-    //  AJUSTE 4: Diminui a altura mínima da caixa de observações
-    // ==========================================================================
     bodyData.push([{ content: requisicao.observacao || 'Nenhuma observação.', colSpan: 2, styles: { minCellHeight: 15 } }]);
 
     autoTable(doc, { 
-        // ==========================================================================
-        //  AJUSTE 5: Puxa o início da tabela um pouco para cima
-        // ==========================================================================
         startY: 50, 
         body: bodyData, 
         theme: 'grid',
-        didDrawPage: () => { addHeaderAndFooter(); },
-        styles: { 
-            fontSize: 9, 
-            // ==========================================================================
-            //  AJUSTE 6: Reduz ainda mais o padding das células
-            // ==========================================================================
-            cellPadding: 1.5
-        }
+        didDrawPage: (data) => { addHeaderAndFooter(); },
+        styles: { fontSize: 9, cellPadding: 1.5 }
     });
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let finalY = (doc as any).lastAutoTable.finalY;
-    
-    // Altura das caixas de assinatura + o espaçamento até elas
-    // ==========================================================================
-    //  AJUSTE 7: Reduz a altura total estimada para as assinaturas
-    // ==========================================================================
     const signatureSectionHeight = 40; 
-    const footerStartY = pageHeight - 35;
-    
+    const footerStartY = pageHeight - 30;
     if (finalY + signatureSectionHeight > footerStartY) {
         doc.addPage();
         finalY = 40;
     }
-    // ==========================================================================
-    //  AJUSTE 8: Aproxima as caixas de assinatura da tabela
-    // ==========================================================================
     const startYAssinaturas = finalY + 10;
     const spaceBetweenBoxes = 8;
     const marginHorizontal = 15;
     const boxWidth = (pageWidth - (marginHorizontal * 2) - spaceBetweenBoxes) / 2;
-    // ==========================================================================
-    //  AJUSTE 9: Reduz a altura mínima das caixas de assinatura
-    // ==========================================================================
     autoTable(doc, { startY: startYAssinaturas, head: [['RESPONSÁVEL LEGAL']], headStyles: sectionHeadStyle, body: [[' ']], bodyStyles: { minCellHeight: 18 }, theme: 'grid', tableWidth: boxWidth, margin: { left: marginHorizontal } });
     autoTable(doc, { startY: startYAssinaturas, head: [['MÉDICO VETERINÁRIO OFICIAL']], headStyles: sectionHeadStyle, body: [[' ']], bodyStyles: { minCellHeight: 18 }, theme: 'grid', tableWidth: boxWidth, margin: { left: marginHorizontal + boxWidth + spaceBetweenBoxes } });
     
