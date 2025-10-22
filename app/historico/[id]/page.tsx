@@ -60,7 +60,6 @@ export default function DetalhesRequisicaoPage() {
   const [requisicao, setRequisicao] = useState<RequisicaoDetalhada | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // useEffect para buscar dados (sem alterações)
   useEffect(() => {
     if (params.id) {
       async function fetchDetalhes() {
@@ -70,36 +69,28 @@ export default function DetalhesRequisicaoPage() {
           .select(`*, estabelecimentos (*), requisicao_analises (parametros_analise (*))`)
           .eq('id', params.id)
           .single();
-
-        if (error) {
-          console.error("Erro ao buscar detalhes:", error);
-        } else {
-          setRequisicao(data as RequisicaoDetalhada);
-        }
+        if (error) { console.error("Erro ao buscar detalhes:", error); } 
+        else { setRequisicao(data as RequisicaoDetalhada); }
         setLoading(false);
       }
       fetchDetalhes();
     }
   }, [params.id]);
 
-
   const generatePDF = async () => {
     if (!requisicao || !requisicao.estabelecimentos) {
       alert("Dados da requisição ou do estabelecimento não carregados.");
       return;
     }
-
     const brasaoBase64 = await getImageBase64('/brasao.png') as string;
     if (!brasaoBase64) {
       alert("Não foi possível carregar a imagem do brasão para o PDF.");
       return;
     }
-
     const doc = new jsPDF();
     const pageHeight = doc.internal.pageSize.height;
     const pageWidth = doc.internal.pageSize.width;
     
-    // Função de cabeçalho e rodapé (sem alterações)
     const addHeaderAndFooter = () => {
       doc.addImage(brasaoBase64, 'PNG', 15, 12, 25, 25);
       doc.setFontSize(10); doc.setFont('helvetica', 'bold');
@@ -109,7 +100,6 @@ export default function DetalhesRequisicaoPage() {
       doc.text('SECRETARIA MUNICIPAL DE AGRICULTURA E ABASTECIMENTO', pageWidth / 2, 25, { align: 'center' });
       doc.setFont('helvetica', 'bold');
       doc.text('SERVIÇO DE INSPEÇÃO MUNICIPAL', pageWidth / 2, 30, { align: 'center' });
-      
       doc.setFontSize(8); doc.setFont('helvetica', 'normal');
       doc.line(15, pageHeight - 30, pageWidth - 15, pageHeight - 30);
       doc.text('SECRETARIA MUNICIPAL DE AGRICULTURA E ABASTECIMENTO', pageWidth / 2, pageHeight - 25, { align: 'center' });
@@ -118,140 +108,122 @@ export default function DetalhesRequisicaoPage() {
       doc.text('Tel/Watts: (51) 99544-2158', pageWidth / 2, pageHeight - 10, { align: 'center' });
     };
 
-    // Título Principal (sem alterações)
     const isProduto = requisicao.tipo_requisicao === 'PRODUTO';
     const title = isProduto ? "REQUISIÇÃO PARA ANÁLISE OFICIAL DE PRODUTOS" : "REQUISIÇÃO PARA ANÁLISE OFICIAL DE ÁGUA";
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text(title, pageWidth / 2, 50, { align: 'center' });
-
     // ==========================================================================
-    //  CORREÇÃO DE ESTRUTURA E TIPO
+    //  AJUSTE 1: Puxa o título um pouco para cima
     // ==========================================================================
-    const sectionHeadStyle = { fillColor: '#E9ECEF', textColor: '#343A40', fontStyle: 'bold' as const, halign: 'center' as const };
-    const sectionSpacing = 7;
+    doc.text(title, pageWidth / 2, 45, { align: 'center' });
 
-    autoTable(doc, {
-      startY: 55,
-      head: [['DADOS DO ESTABELECIMENTO']],
-      headStyles: sectionHeadStyle,
-      body: [
-          [`SIM: ${requisicao.estabelecimentos.sim_id || ''}`, `CNPJ/CPF: ${requisicao.estabelecimentos.cnpj_cpf}`],
-          [{ content: `ESTABELECIMENTO: ${requisicao.estabelecimentos.nome}`, colSpan: 2 }],
-          [{ content: `ENDEREÇO: ${requisicao.estabelecimentos.endereco}`, colSpan: 2 }],
-      ],
-      theme: 'grid',
-      didDrawPage: () => { addHeaderAndFooter(); },
-    });
+    const sectionHeadStyle = { fillColor: '#E9ECEF', textColor: '#343A40', fontStyle: 'bold' as const, halign: 'center' as const, lineWidth: 0.1, lineColor: 0 };
+    // ==========================================================================
+    //  AJUSTE 2: Diminui ainda mais o espaçador invisível
+    // ==========================================================================
+    const spacerStyle = { minCellHeight: 2, styles: { lineWidth: 0 } };
 
+    const bodyData: RowInput[] = [];
+
+    bodyData.push([{ content: 'DADOS DO ESTABELECIMENTO', colSpan: 2, styles: sectionHeadStyle }]);
+    bodyData.push([{ content: `SIM: ${requisicao.estabelecimentos.sim_id || ''}` }, { content: `CNPJ/CPF: ${requisicao.estabelecimentos.cnpj_cpf}` }]);
+    bodyData.push([{ content: `ESTABELECIMENTO: ${requisicao.estabelecimentos.nome}`, colSpan: 2 }]);
+    bodyData.push([{ content: `ENDEREÇO: ${requisicao.estabelecimentos.endereco}`, colSpan: 2 }]);
+    bodyData.push([{ content: '', colSpan: 2, styles: spacerStyle }]);
     const coletaHead = isProduto ? 'DADOS DA AMOSTRA (PRODUTO)' : 'DADOS DA AMOSTRA (ÁGUA)';
-    const amostraBody = isProduto ? [
-        ['PRODUTO COLETADO', requisicao.produto_coletado || ''],
-        ['LOTE', requisicao.lote || ''],
-        ['DATA DE PRODUÇÃO', requisicao.data_producao ? new Date(requisicao.data_producao + 'T00:00:00').toLocaleDateString('pt-BR') : ''],
-        ['DATA DE VALIDADE', requisicao.data_validade ? new Date(requisicao.data_validade + 'T00:00:00').toLocaleDateString('pt-BR') : ''],
-    ] : [ [{ content: `PONTO DE COLETA: ${requisicao.ponto_coleta || ''}`, colSpan: 2 }] ];
+    bodyData.push([{ content: coletaHead, colSpan: 2, styles: sectionHeadStyle }]);
+    if (isProduto) {
+        bodyData.push([{ content: 'PRODUTO COLETADO' }, { content: requisicao.produto_coletado || '' }]);
+        bodyData.push([{ content: 'LOTE' }, { content: requisicao.lote || '' }]);
+        bodyData.push([{ content: 'DATA DE PRODUÇÃO' }, { content: requisicao.data_producao ? new Date(requisicao.data_producao + 'T00:00:00').toLocaleDateString('pt-BR') : '' }]);
+        bodyData.push([{ content: 'DATA DE VALIDADE' }, { content: requisicao.data_validade ? new Date(requisicao.data_validade + 'T00:00:00').toLocaleDateString('pt-BR') : '' }]);
+    } else {
+        bodyData.push([{ content: `PONTO DE COLETA: ${requisicao.ponto_coleta || ''}`, colSpan: 2 }]);
+    }
+    // ==========================================================================
+    //  AJUSTE 3: Espaçador entre Dados da Amostra e Dados da Coleta
+    // ==========================================================================
+    bodyData.push([{ content: '', colSpan: 2, styles: { minCellHeight: 4, lineWidth: 0 } }]);
     
-    autoTable(doc, {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        startY: (doc as any).lastAutoTable.finalY + sectionSpacing,
-        head: [[coletaHead]],
-        headStyles: sectionHeadStyle,
-        body: amostraBody,
-        theme: 'grid',
-    });
-    autoTable(doc, {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        startY: (doc as any).lastAutoTable.finalY,
-        head: [['DADOS DA COLETA']],
-        headStyles: sectionHeadStyle,
-        body: [
-          ['DATA DA COLETA', requisicao.data_coleta ? new Date(requisicao.data_coleta + 'T00:00:00').toLocaleDateString('pt-BR') : ''],
-          ['HORA DA COLETA', requisicao.hora_coleta || ''],
-          ['MÊS DE REFERÊNCIA', requisicao.mes_referencia || ''],
-          ['Nº DO LACRE', requisicao.lacre_numero || ''],
-        ],
-        theme: 'grid',
-    });
-
+    bodyData.push([{ content: 'DADOS DA COLETA', colSpan: 2, styles: sectionHeadStyle }]);
+    bodyData.push([{ content: 'DATA DA COLETA' }, { content: requisicao.data_coleta ? new Date(requisicao.data_coleta + 'T00:00:00').toLocaleDateString('pt-BR') : '' }]);
+    bodyData.push([{ content: 'HORA DA COLETA' }, { content: requisicao.hora_coleta || '' }]);
+    bodyData.push([{ content: 'MÊS DE REFERÊNCIA' }, { content: requisicao.mes_referencia || '' }]);
+    bodyData.push([{ content: 'Nº DO LACRE' }, { content: requisicao.lacre_numero || '' }]);
+    bodyData.push([{ content: '', colSpan: 2, styles: spacerStyle }]);
     const analises = requisicao.requisicao_analises ?? [];
     const paramsMicro = analises.filter(p => p.parametros_analise?.tipo === 'MICROBIOLOGICA').map(p => `(X) ${p.parametros_analise.nome_parametro}`);
     const paramsFisico = analises.filter(p => p.parametros_analise?.tipo === 'FISICO-QUIMICA').map(p => `(X) ${p.parametros_analise.nome_parametro}`);
     const hasMicro = paramsMicro.length > 0;
     const hasFisico = paramsFisico.length > 0;
-
-    if(hasMicro || hasFisico){
-        let head: RowInput[] = [];
-        let body: RowInput[] = [];
-        if (hasMicro && hasFisico) {
-            head = [
-                [{ content: 'ANÁLISES SOLICITADAS', colSpan: 2, styles: sectionHeadStyle }],
-                [{ content: 'MICROBIOLÓGICAS', styles: { fontStyle:'bold' as const, halign:'center' as const } }, { content: 'FÍSICO-QUÍMICAS', styles: { fontStyle:'bold' as const, halign:'center' as const } }]
-            ];
-            const maxRows = Math.max(paramsMicro.length, paramsFisico.length);
-            for (let i = 0; i < maxRows; i++) {
-                body.push([ paramsMicro[i] || '', paramsFisico[i] || '' ]);
-            }
-        } else if (hasMicro) {
-            head = [
-                [{ content: 'ANÁLISES SOLICITADAS', styles: sectionHeadStyle }],
-                [{ content: 'MICROBIOLÓGICAS', styles: { fontStyle:'bold' as const, halign:'center' as const } }]
-            ];
-            body = paramsMicro.map(p => [p]);
-        } else { // hasFisico
-            head = [
-                [{ content: 'ANÁLISES SOLICITADAS', styles: sectionHeadStyle }],
-                [{ content: 'FÍSICO-QUÍMICAS', styles: { fontStyle:'bold' as const, halign:'center' as const } }]
-            ];
-            body = paramsFisico.map(p => [p]);
-        }
-        autoTable(doc, {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            startY: (doc as any).lastAutoTable.finalY + sectionSpacing,
-            head: head,
-            body: body,
-            theme: 'grid',
-        });
+    if (hasMicro || hasFisico) {
+      bodyData.push([{ content: 'ANÁLISES SOLICITADAS', colSpan: 2, styles: sectionHeadStyle }]);
+      if (hasMicro && hasFisico) {
+        bodyData.push([{ content: 'MICROBIOLÓGICAS', styles: { fontStyle: 'bold' as const, halign:'center' as const } }, { content: 'FÍSICO-QUÍMICAS', styles: { fontStyle:'bold' as const, halign:'center' as const } }]);
+        const maxRows = Math.max(paramsMicro.length, paramsFisico.length);
+        for (let i = 0; i < maxRows; i++) { bodyData.push([{ content: paramsMicro[i] || '' }, { content: paramsFisico[i] || '' }]); }
+      } else if (hasMicro) {
+        bodyData.push([{ content: 'MICROBIOLÓGICAS', colSpan: 2, styles: { fontStyle:'bold' as const, halign:'center' as const } }]);
+        paramsMicro.forEach(p => bodyData.push([{ content: p, colSpan: 2 }]));
+      } else {
+        bodyData.push([{ content: 'FÍSICO-QUÍMICAS', colSpan: 2, styles: { fontStyle:'bold' as const, halign:'center' as const } }]);
+        paramsFisico.forEach(p => bodyData.push([{ content: p, colSpan: 2 }]));
+      }
+      bodyData.push([{ content: '', colSpan: 2, styles: spacerStyle }]);
     }
+    bodyData.push([{ content: 'OBSERVAÇÕES', colSpan: 2, styles: sectionHeadStyle }]);
+    // ==========================================================================
+    //  AJUSTE 4: Diminui a altura mínima da caixa de observações
+    // ==========================================================================
+    bodyData.push([{ content: requisicao.observacao || 'Nenhuma observação.', colSpan: 2, styles: { minCellHeight: 15 } }]);
 
-    autoTable(doc, {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      startY: (doc as any).lastAutoTable.finalY + sectionSpacing,
-      head: [['OBSERVAÇÕES']],
-      headStyles: sectionHeadStyle,
-      body: [[requisicao.observacao || 'Nenhuma observação.']],
-      bodyStyles: { minCellHeight: 25 },
-      theme: 'grid',
+    autoTable(doc, { 
+        // ==========================================================================
+        //  AJUSTE 5: Puxa o início da tabela um pouco para cima
+        // ==========================================================================
+        startY: 50, 
+        body: bodyData, 
+        theme: 'grid',
+        didDrawPage: () => { addHeaderAndFooter(); },
+        styles: { 
+            fontSize: 9, 
+            // ==========================================================================
+            //  AJUSTE 6: Reduz ainda mais o padding das células
+            // ==========================================================================
+            cellPadding: 1.5
+        }
     });
-
+    
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let finalY = (doc as any).lastAutoTable.finalY;
-    if (finalY + 50 > pageHeight) {
+    
+    // Altura das caixas de assinatura + o espaçamento até elas
+    // ==========================================================================
+    //  AJUSTE 7: Reduz a altura total estimada para as assinaturas
+    // ==========================================================================
+    const signatureSectionHeight = 40; 
+    const footerStartY = pageHeight - 35;
+    
+    if (finalY + signatureSectionHeight > footerStartY) {
         doc.addPage();
         finalY = 40;
     }
-    const startYAssinaturas = finalY + 15;
+    // ==========================================================================
+    //  AJUSTE 8: Aproxima as caixas de assinatura da tabela
+    // ==========================================================================
+    const startYAssinaturas = finalY + 10;
     const spaceBetweenBoxes = 8;
     const marginHorizontal = 15;
     const boxWidth = (pageWidth - (marginHorizontal * 2) - spaceBetweenBoxes) / 2;
-
-    autoTable(doc, {
-        startY: startYAssinaturas,
-        head: [['RESPONSÁVEL LEGAL']], headStyles: sectionHeadStyle,
-        body: [[' ']], bodyStyles: { minCellHeight: 25 },
-        theme: 'grid', tableWidth: boxWidth, margin: { left: marginHorizontal },
-    });
-    autoTable(doc, {
-        startY: startYAssinaturas,
-        head: [['MÉDICO VETERINÁRIO OFICIAL']], headStyles: sectionHeadStyle,
-        body: [[' ']], bodyStyles: { minCellHeight: 25 },
-        theme: 'grid', tableWidth: boxWidth, margin: { left: marginHorizontal + boxWidth + spaceBetweenBoxes },
-    });
+    // ==========================================================================
+    //  AJUSTE 9: Reduz a altura mínima das caixas de assinatura
+    // ==========================================================================
+    autoTable(doc, { startY: startYAssinaturas, head: [['RESPONSÁVEL LEGAL']], headStyles: sectionHeadStyle, body: [[' ']], bodyStyles: { minCellHeight: 18 }, theme: 'grid', tableWidth: boxWidth, margin: { left: marginHorizontal } });
+    autoTable(doc, { startY: startYAssinaturas, head: [['MÉDICO VETERINÁRIO OFICIAL']], headStyles: sectionHeadStyle, body: [[' ']], bodyStyles: { minCellHeight: 18 }, theme: 'grid', tableWidth: boxWidth, margin: { left: marginHorizontal + boxWidth + spaceBetweenBoxes } });
     
     doc.save(`Requisicao_${requisicao.id}_${requisicao.estabelecimentos.nome}.pdf`);
   };
 
-  // O restante do componente (JSX) para exibir a página (sem alterações)
   if (loading) { return <main><div className="form-container"><p>Carregando detalhes...</p></div></main>; }
   if (!requisicao) { return <main><div className="form-container"><p>Requisição não encontrada.</p> <Link href="/historico">Voltar</Link></div></main>; }
 
@@ -269,51 +241,11 @@ export default function DetalhesRequisicaoPage() {
           </div>
         </div>
         <hr style={{ margin: '1rem 0' }} />
-
-        <div className="details-section">
-          <h3>Dados do Estabelecimento</h3>
-          <p><strong>Nome:</strong> {requisicao.estabelecimentos?.nome || 'N/A'}</p>
-          <p><strong>CNPJ/CPF:</strong> {requisicao.estabelecimentos?.cnpj_cpf || 'N/A'}</p>
-          <p><strong>Endereço:</strong> {requisicao.estabelecimentos?.endereco || 'N/A'}</p>
-        </div>
-
-        <div className="details-section">
-          <h3>Dados da Coleta</h3>
-          <div className="details-grid">
-            <p><strong>Data da Coleta:</strong> {requisicao.data_coleta ? new Date(requisicao.data_coleta + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</p>
-            <p><strong>Hora da Coleta:</strong> {requisicao.hora_coleta || 'N/A'}</p>
-            <p><strong>Mês de Referência:</strong> {requisicao.mes_referencia || 'N/A'}</p>
-            <p><strong>Nº do Lacre:</strong> {requisicao.lacre_numero || 'N/A'}</p>
-          </div>
-        </div>
-        
-        <div className="details-section">
-          <h3>Dados da Amostra</h3>
-          {requisicao.tipo_requisicao === 'PRODUTO' ? (
-            <div className="details-grid">
-              <p><strong>Produto:</strong> {requisicao.produto_coletado || 'N/A'}</p>
-              <p><strong>Lote:</strong> {requisicao.lote || 'N/A'}</p>
-              <p><strong>Produção:</strong> {requisicao.data_producao ? new Date(requisicao.data_producao + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</p>
-              <p><strong>Validade:</strong> {requisicao.data_validade ? new Date(requisicao.data_validade + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</p>
-            </div>
-          ) : (
-            <p><strong>Ponto de Coleta (Água):</strong> {requisicao.ponto_coleta || 'N/A'}</p>
-          )}
-        </div>
-
-        <div className="details-section">
-          <h3>Análises Solicitadas</h3>
-          {paramsMicro.length > 0 && ( <> <h4>Microbiológicas</h4> <ul>{paramsMicro.map(p => <li key={p.parametros_analise.nome_parametro}>{p.parametros_analise.nome_parametro}</li>)}</ul> </> )}
-          {paramsFisico.length > 0 && ( <> <h4>Físico-químicas</h4> <ul>{paramsFisico.map(p => <li key={p.parametros_analise.nome_parametro}>{p.parametros_analise.nome_parametro}</li>)}</ul> </> )}
-          {(paramsMicro.length === 0 && paramsFisico.length === 0) && (<p>Nenhuma análise solicitada.</p>)}
-        </div>
-        
-        {requisicao.observacao && (
-          <div className="details-section">
-            <h3>Observações</h3>
-            <p>{requisicao.observacao}</p>
-          </div>
-        )}
+        <div className="details-section"><h3>Dados do Estabelecimento</h3><p><strong>Nome:</strong> {requisicao.estabelecimentos?.nome || 'N/A'}</p><p><strong>CNPJ/CPF:</strong> {requisicao.estabelecimentos?.cnpj_cpf || 'N/A'}</p><p><strong>Endereço:</strong> {requisicao.estabelecimentos?.endereco || 'N/A'}</p></div>
+        <div className="details-section"><h3>Dados da Coleta</h3><div className="details-grid"><p><strong>Data da Coleta:</strong> {requisicao.data_coleta ? new Date(requisicao.data_coleta + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</p><p><strong>Hora da Coleta:</strong> {requisicao.hora_coleta || 'N/A'}</p><p><strong>Mês de Referência:</strong> {requisicao.mes_referencia || 'N/A'}</p><p><strong>Nº do Lacre:</strong> {requisicao.lacre_numero || 'N/A'}</p></div></div>
+        <div className="details-section"><h3>Dados da Amostra</h3>{requisicao.tipo_requisicao === 'PRODUTO' ? (<div className="details-grid"><p><strong>Produto:</strong> {requisicao.produto_coletado || 'N/A'}</p><p><strong>Lote:</strong> {requisicao.lote || 'N/A'}</p><p><strong>Produção:</strong> {requisicao.data_producao ? new Date(requisicao.data_producao + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</p><p><strong>Validade:</strong> {requisicao.data_validade ? new Date(requisicao.data_validade + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</p></div>) : (<p><strong>Ponto de Coleta (Água):</strong> {requisicao.ponto_coleta || 'N/A'}</p>)}</div>
+        <div className="details-section"><h3>Análises Solicitadas</h3>{paramsMicro.length > 0 && ( <> <h4>Microbiológicas</h4> <ul>{paramsMicro.map(p => <li key={p.parametros_analise.nome_parametro}>{p.parametros_analise.nome_parametro}</li>)}</ul> </> )}{paramsFisico.length > 0 && ( <> <h4>Físico-químicas</h4> <ul>{paramsFisico.map(p => <li key={p.parametros_analise.nome_parametro}>{p.parametros_analise.nome_parametro}</li>)}</ul> </> )}{(paramsMicro.length === 0 && paramsFisico.length === 0) && (<p>Nenhuma análise solicitada.</p>)}</div>
+        {requisicao.observacao && (<div className="details-section"><h3>Observações</h3><p>{requisicao.observacao}</p></div>)}
       </div>
     </main>
   );

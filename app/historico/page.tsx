@@ -52,27 +52,8 @@ export default function HistoricoPage() {
     fetchHistorico();
   }, []);
 
-  if (loading) {
-    return (
-      <main>
-        <div className="form-container">
-          <p>Carregando histórico...</p>
-        </div>
-      </main>
-    );
-  }
-
-  if (error) {
-    return (
-      <main>
-        <div className="form-container">
-          <h1>Erro</h1>
-          <p>{error}</p>
-          <Link href="/" className="form-link">Voltar</Link>
-        </div>
-      </main>
-    );
-  }
+  if (loading) { return <main><div className="form-container"><p>Carregando histórico...</p></div></main>; }
+  if (error) { return <main><div className="form-container"><h1>Erro</h1><p>{error}</p><Link href="/" className="form-link">Voltar</Link></div></main>; }
 
   return (
     <main>
