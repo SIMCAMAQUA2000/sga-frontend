@@ -12,9 +12,9 @@ interface Requisicao {
   created_at: string;
   tipo_requisicao: string;
   data_coleta: string | null;
-  estabelecimentos: { // Deve ser um array de objetos
+  estabelecimentos: { // DEVE SER UM OBJETO ÚNICO, não um array
     nome: string;
-  }[] | null;
+  } | null;
 }
 
 export default function HistoricoPage() {
@@ -52,27 +52,8 @@ export default function HistoricoPage() {
     fetchHistorico();
   }, []);
 
-  if (loading) {
-    return (
-      <main>
-        <div className="form-container">
-          <p>Carregando histórico...</p>
-        </div>
-      </main>
-    );
-  }
-
-  if (error) {
-    return (
-      <main>
-        <div className="form-container">
-          <h1>Erro</h1>
-          <p>{error}</p>
-          <Link href="/" className="form-link">Voltar</Link>
-        </div>
-      </main>
-    );
-  }
+  if (loading) { return <main><div className="form-container"><p>Carregando histórico...</p></div></main>; }
+  if (error) { return <main><div className="form-container"><h1>Erro</h1><p>{error}</p><Link href="/" className="form-link">Voltar</Link></div></main>; }
 
   return (
     <main>
@@ -99,8 +80,8 @@ export default function HistoricoPage() {
               {requisicoes.map((req) => (
                 <tr key={req.id}>
                   <td>{req.id}</td>
-                  {/* CORREÇÃO AQUI: Acessamos o primeiro item do array */}
-                  <td>{req.estabelecimentos?.[0]?.nome || 'N/A'}</td>
+                  {/* ACESSAMOS A PROPRIEDADE 'nome' DIRETAMENTE */}
+                  <td>{req.estabelecimentos?.nome || 'N/A'}</td>
                   <td>{req.tipo_requisicao}</td>
                   <td>{req.data_coleta ? new Date(req.data_coleta + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</td>
                   <td>

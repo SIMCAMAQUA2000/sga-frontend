@@ -193,3 +193,30 @@ input[type="text"], input[type="date"], input[type="time"], input[type="email"],
 .details-link:hover {
   background-color: #0056b3;
 }
+/* Estilo para o botão de Edição */
+.edit-button {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  background-color: #28a745; /* Verde para Edição */
+  color: white;
+  text-decoration: none;
+  border-radius: 5px;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.edit-button:hover {
+  background-color: #218838;
+}
+/* Estilos para a página de Agenda */
+.status-vencido {
+  background-color: #f8d7da !important; /* Vermelho claro */
+  font-weight: bold;
+}
+
+.status-atencao {
+  background-color: #fff3cd !important; /* Amarelo claro */
+}

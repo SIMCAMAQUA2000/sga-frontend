@@ -14,7 +14,6 @@ export default function HomePage() {
   const [allParams, setAllParams] = useState<Parametro[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // --- Estados do Formulário ---
   const [tipoAnalise, setTipoAnalise] = useState('');
   const [selectedEstId, setSelectedEstId] = useState<string>('');
   const [cnpj, setCnpj] = useState<string>('');
@@ -32,6 +31,10 @@ export default function HomePage() {
   const [lote, setLote] = useState<string>('');
   const [dataProducao, setDataProducao] = useState<string>('');
   const [dataValidade, setDataValidade] = useState<string>('');
+  const [temperaturaProduto, setTemperaturaProduto] = useState<string>('');
+  const [temperaturaAmbiente, setTemperaturaAmbiente] = useState<string>('');
+  const [frequenciaAnalise, setFrequenciaAnalise] = useState<string>('');
+
 
   useEffect(() => {
     async function fetchInitialData() {
@@ -55,10 +58,13 @@ export default function HomePage() {
       if (data) setProdutosDoEstabelecimento(data);
     }
     fetchProdutos();
+    const selecionado = estabelecimentos.find(est => est.id === parseInt(selectedEstId));
+    setCnpj(selecionado?.cnpj_cpf || '');
+    setEndereco(selecionado?.endereco || '');
     setSelectedProdId('');
     setParametrosDoProduto([]);
     setAnalisesSelecionadas(new Set());
-  }, [selectedEstId]);
+  }, [selectedEstId, estabelecimentos]);
 
   useEffect(() => {
     if (!selectedProdId) {
@@ -70,8 +76,6 @@ export default function HomePage() {
       const { data: paramLinks } = await supabase.from('produto_parametros').select('parametro_id').eq('produto_id', selectedProdId);
       if (paramLinks && paramLinks.length > 0) {
         const paramIds = paramLinks.map(link => link.parametro_id);
-        
-        // LINHA CORRIGIDA: Adicionamos 'aplicacao' à consulta para satisfazer a tipagem de 'Parametro'.
         const { data: paramsData } = await supabase.from('parametros_analise').select('id, nome_parametro, tipo, aplicacao').in('id', paramIds);
         
         if (paramsData) {
@@ -85,14 +89,6 @@ export default function HomePage() {
     }
     fetchParametros();
   }, [selectedProdId]);
-
-  const handleEstabelecimentoChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const id = event.target.value;
-    setSelectedEstId(id);
-    const selecionado = estabelecimentos.find(est => est.id === parseInt(id));
-    setCnpj(selecionado?.cnpj_cpf || '');
-    setEndereco(selecionado?.endereco || '');
-  };
   
   const handleAnaliseChange = (parametroId: number) => {
     const newSelection = new Set(analisesSelecionadas);
@@ -107,6 +103,8 @@ export default function HomePage() {
     setSelectedProdId('');
     setParametrosDoProduto([]); setAnalisesSelecionadas(new Set());
     setMesReferencia(''); setLote(''); setDataProducao(''); setDataValidade('');
+    setTemperaturaProduto(''); setTemperaturaAmbiente('');
+    setFrequenciaAnalise('');
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -123,6 +121,8 @@ export default function HomePage() {
         lacre_numero: lacre, observacao: observacoes, ponto_coleta: pontoColeta,
         produto_coletado: nomeProdutoColetado, mes_referencia: mesReferencia,
         lote: lote, data_producao: dataProducao || null, data_validade: dataValidade || null,
+        temperatura_produto: temperaturaProduto, temperatura_ambiente: temperaturaAmbiente,
+        frequencia_analise: frequenciaAnalise ? parseInt(frequenciaAnalise) : null,
     }]).select().single();
 
     if (requisicaoError) { alert('Erro ao salvar requisição: ' + requisicaoError.message); setLoading(false); return; }
@@ -147,24 +147,40 @@ export default function HomePage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h1>Requisição para Análise Oficial</h1>
           <div>
+            <Link href="/agenda" className="form-link" style={{ fontSize: '1rem', marginRight: '1rem' }}>Agenda</Link>
             <Link href="/produtos" className="form-link" style={{ fontSize: '1rem', marginRight: '1rem' }}>Gerenciar Produtos</Link>
             <Link href="/historico" className="form-link" style={{ fontSize: '1rem' }}>Ver Histórico</Link>
           </div>
         </div>
 
-        <div style={{ marginBottom: '1.5rem', marginTop: '1rem' }}>
-          <label htmlFor="tipo_analise" className="form-label">Tipo de Análise:</label>
-          <select id="tipo_analise" value={tipoAnalise} onChange={(e) => setTipoAnalise(e.target.value)} required>
-            <option value="">-- Selecione --</option>
-            <option value="AGUA">Água de Abastecimento</option>
-            <option value="PRODUTO">Produto de Origem Animal</option>
-          </select>
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', marginTop: '1rem' }}>
+          <div style={{ flex: 1 }}>
+            <label htmlFor="tipo_analise" className="form-label">Tipo de Análise:</label>
+            <select id="tipo_analise" value={tipoAnalise} onChange={(e) => setTipoAnalise(e.target.value)} required>
+              <option value="">-- Selecione --</option>
+              <option value="AGUA">Água de Abastecimento</option>
+              <option value="PRODUTO">Produto de Origem Animal</option>
+            </select>
+          </div>
+          
+          <div style={{ flex: 1 }}>
+            <label htmlFor="frequencia" className="form-label">Frequência da Análise:</label>
+            <select id="frequencia" value={frequenciaAnalise} onChange={(e) => setFrequenciaAnalise(e.target.value)} required>
+              <option value="">-- Selecione --</option>
+              <option value="30">Mensal (30 dias)</option>
+              <option value="60">Bimestral (60 dias)</option>
+              <option value="90">Trimestral (90 dias)</option>
+              <option value="180">Semestral (180 dias)</option>
+              <option value="365">Anual (365 dias)</option>
+              <option value="0">Eventual</option>
+            </select>
+          </div>
         </div>
         <hr />
-
+        {/* O resto do formulário continua o mesmo */}
         <div style={{ marginTop: '1.5rem' }}>
           <label htmlFor="estabelecimento" className="form-label">Estabelecimento:</label>
-          <select id="estabelecimento" value={selectedEstId} onChange={handleEstabelecimentoChange} required>
+          <select id="estabelecimento" value={selectedEstId} onChange={(e) => setSelectedEstId(e.target.value)} required>
             <option value="">-- Selecione um estabelecimento --</option>
             {estabelecimentos.map((est) => <option key={est.id} value={est.id}>{est.nome}</option>)}
           </select>
@@ -247,7 +263,16 @@ export default function HomePage() {
             <input type="time" id="horaColeta" value={horaColeta} onChange={e => setHoraColeta(e.target.value)} />
           </div>
         </div>
-        
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div style={{ flex: 1 }}>
+            <label htmlFor="temperaturaProduto" className="form-label">Temp. Produto (°C):</label>
+            <input type="text" id="temperaturaProduto" value={temperaturaProduto} onChange={e => setTemperaturaProduto(e.target.value)} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label htmlFor="temperaturaAmbiente" className="form-label">Temp. Ambiente (°C):</label>
+            <input type="text" id="temperaturaAmbiente" value={temperaturaAmbiente} onChange={e => setTemperaturaAmbiente(e.target.value)} />
+          </div>
+        </div>
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
           <div style={{ flex: 1 }}>
             <label htmlFor="mesReferencia" className="form-label">Mês de Referência:</label>
@@ -258,12 +283,10 @@ export default function HomePage() {
             <input type="text" id="lacre" value={lacre} onChange={e => setLacre(e.target.value)} />
           </div>
         </div>
-
         <div style={{ marginTop: '1.5rem' }}>
           <label htmlFor="observacoes" className="form-label">Observações:</label>
-          <textarea id="observacoes" value={observacoes} onChange={e => setObservacoes(e.target.value)} rows={3} style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', border: '1px solid #ccc', borderRadius: '5px' }}></textarea>
+          <textarea id="observacoes" value={observacoes} onChange={e => setObservacoes(e.target.value)} rows={3}></textarea>
         </div>
-
         <hr style={{ margin: '2rem 0' }} />
         <button type="submit" className="submit-button" disabled={loading || !tipoAnalise}>
           {loading ? 'Enviando...' : 'Enviar Requisição'}
@@ -272,5 +295,3 @@ export default function HomePage() {
     </main>
   );
 }
-
-
